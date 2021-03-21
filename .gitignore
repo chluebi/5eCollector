@@ -1,2 +1,10 @@
 
 tokens.json
+
+lib/__pycache__/
+
+bot/__pycache__/
+
+bestiary-mm.json
+
+config.json
