@@ -49,11 +49,11 @@ def create_tables(conn):
         CREATE TABLE users ( 
             id bigint UNIQUE NOT NULL,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
-            level int,
+            score int,
             rolls int,
-            timestamp_roll double precision,
+            roll_timestamp double precision,
             catches int,
-            timestamp_catch double precision,
+            catch_timestamp double precision,
             PRIMARY KEY (id, guild_id)
         );
         ''',
@@ -62,6 +62,7 @@ def create_tables(conn):
             id SERIAL,
             name text,
             type text,
+            level int,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE, 
             owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
             PRIMARY KEY (id, owner_id)
@@ -125,24 +126,24 @@ class User:
         return row
 
     @staticmethod
-    def create(id, guild_id):
+    def create(id, guild_id, timestamp):
         cur = conn.cursor()
-        command = '''INSERT INTO users(id, guild_id, level, rolls, timestamp_roll, catches, timestamp_catch) 
+        command = '''INSERT INTO users(id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp) 
         VALUES (%s, %s, %s, %s, %s, %s, %s);'''
-        cur.execute(command, (id, guild_id, 1,
-         config['game']['rolls'], 0, config['game']['catches'], 0))
+        cur.execute(command, (id, guild_id, 0,
+         config['game']['rolls'], timestamp, config['game']['catches'], timestamp))
         conn.commit()
         cur.close()
 
     @staticmethod
-    def explore(id, guild_id, rolls, timestamp_roll):
+    def roll(id, guild_id, rolls, roll_timestamp):
         cur = conn.cursor()
 
-        if timestamp_roll is not None:
+        if roll_timestamp is not None:
             command = '''UPDATE users
-                        SET rolls = %s, timestamp_roll = %s
+                        SET rolls = %s, roll_timestamp = %s
                         WHERE id = %s AND guild_id = %s;'''
-            cur.execute(command, (rolls, timestamp_roll, id, guild_id))
+            cur.execute(command, (rolls, roll_timestamp, id, guild_id))
 
         else:
             command = '''UPDATE users
@@ -150,6 +151,35 @@ class User:
                         WHERE id = %s AND guild_id = %s;'''
             cur.execute(command, (rolls, id, guild_id))
         
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def catch(id, guild_id, catches, catch_timestamp):
+        cur = conn.cursor()
+
+        if catch_timestamp is not None:
+            command = '''UPDATE users
+                        SET catches = %s, catch_timestamp = %s
+                        WHERE id = %s AND guild_id = %s;'''
+            cur.execute(command, (catches, catch_timestamp, id, guild_id))
+
+        else:
+            command = '''UPDATE users
+                        SET catches = %s
+                        WHERE id = %s AND guild_id = %s;'''
+            cur.execute(command, (catches, id, guild_id))
+        
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def score(id, guild_id, score):
+        cur = conn.cursor()
+        command = '''UPDATE users
+                    SET score = %s
+                    WHERE id = %s AND guild_id = %s;'''
+        cur.execute(command, (score, id, guild_id))
         conn.commit()
         cur.close()
 
@@ -173,10 +203,39 @@ class Monster:
         return row
 
     @staticmethod
-    def create(name, guild_id, owner_id):
+    def get_by_owner(guild_id, owner_id):
         cur = conn.cursor()
-        command = '''INSERT INTO monsters(name, guild_id, owner_id) VALUES (%s, %s, %s);'''
-        cur.execute(command, (name, guild_id, owner_id))
+        command = '''SELECT * FROM monsters WHERE guild_id = %s AND owner_id = %s'''
+        cur.execute(command, (guild_id, owner_id))
+        rows = cur.fetchall()
+        cur.close()
+        return rows
+
+    @staticmethod
+    def rename(id, name):
+        cur = conn.cursor()
+        command = '''UPDATE monsters
+                    SET name = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (name, id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def change_owner(id, owner_id):
+        cur = conn.cursor()
+        command = '''UPDATE monsters
+                    SET owner_id = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (owner_id, id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def create(name, level, guild_id, owner_id):
+        cur = conn.cursor()
+        command = '''INSERT INTO monsters(name, type, level, guild_id, owner_id) VALUES (%s, %s, %s, %s, %s);'''
+        cur.execute(command, (name, name, level, guild_id, owner_id))
         conn.commit()
         cur.close()
 
