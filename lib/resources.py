@@ -2,9 +2,11 @@ import os
 import json
 import random
 import math
+import time
 import discord
 
 import lib.util
+import lib.time_handle
 
 config = lib.util.config
 
@@ -20,9 +22,15 @@ def normalize_cr(cr):
 
 def get_type(typus):
     if type(typus) is dict:
-        get_type(typus['type'])
+        return get_type(typus['type'])
     else:
         return typus
+
+def get_ac(ac):
+    if type(ac) is dict:
+        return get_ac(ac['ac'])
+    else:
+        return ac
 
 def load_monsters():
     path = lib.util.config['resources_path']
@@ -41,6 +49,8 @@ def load_monsters():
             'type': get_type(monster['type']),
             'cr': cr,
             'visual_cr': monster['cr'],
+            'hp': monster['hp']['average'],
+            'ac': get_ac(monster['ac'][0]),
             'str': monster['str'],
             'dex': monster['dex'],
             'con': monster['con'],
@@ -70,6 +80,21 @@ def get_monster(name):
     else:
         return None
 
+def monster_full_title(id, name, type, level, exhausted_timestamp):
+    cr = get_monster(type)['visual_cr']
+    stars = ''.join(['★' for i in range(level)])
+    if name != type:
+        text = f'**{name}** ({type}) [Cr: {cr}] [{stars}]'
+    else:
+        text = f'**{name}** [Cr: {cr}] [{stars}]'
+
+    if exhausted_timestamp > time.time():
+        text += ' 😴'
+
+    text = f'#{id} ' + text
+
+    return text
+
 def generate_monster_embed(monster):
     title = monster['name'] + ' CR: ' + monster['visual_cr']
     description = monster['type']
@@ -86,13 +111,20 @@ def generate_monster_embed(monster):
 
     return embed
 
-def generate_caught_monster_embed(name, monster, owner, level):
+def generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp, chosen=False, hp=0):
     stars = ''.join(['★' for i in range(level)])
     title = name + ' CR: ' + monster['visual_cr'] + f' [{stars}]'
+    if chosen:
+        title = f'[CHOSEN] [HP: {hp}] ' + title
     description = monster['type']
     if name != monster['name']:
         description = monster['name'] + ', ' + description
     embed = discord.Embed(title=title, description=description, url=monster['link'])
+
+    if exhausted_timestamp > time.time():
+        delta = exhausted_timestamp - time.time()
+        value = f'Ready in {lib.time_handle.seconds_to_text(delta)}'
+        embed.add_field(name='Exhausted 😴', value=value, inline=False)
 
     for stat in ['str', 'wis', 'con', 'int', 'wis', 'dex']:
         monster[stat] = monster[stat] + level * 3

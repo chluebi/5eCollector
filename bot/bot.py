@@ -4,6 +4,7 @@ import time
 import traceback
 import sys
 import asyncio
+import random
 
 import lib.util
 import lib.database as db
@@ -43,7 +44,7 @@ async def user_exists_check(ctx):
 
 
 def get_user(name, members):
-    user = discord.utils.find(lambda m: m.mention == name, members)
+    user = discord.utils.find(lambda m: m.mention == name.replace('!', ''), members)
     if user is not None:
         return user
     user = discord.utils.find(lambda m: m.display_name == name, members)
@@ -72,6 +73,74 @@ def get_user_by_id(id, members):
 
     return None
 
+async def user_info(user, ctx):
+    if user is None or not await user_exists(user.id, ctx.guild.id):
+        await ctx.message.channel.send(f'User {user_name} not found')
+        return
+
+    row = db.User.get(user.id, ctx.guild.id)
+
+    if row is None:
+        await ctx.message.channel.send(f'User {user_name} not found')
+        return
+
+    roll_countdown = (row[4] + config['game']['roll_cooldown']) - time.time()
+    if roll_countdown > 0:
+        roll_text = f'**{row[3]}** (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)'
+    else:
+        roll_text = '**' + str(config['game']['rolls']) + '**'
+
+    catch_countdown = (row[6] + config['game']['catch_cooldown']) - time.time()
+    if catch_countdown > 0:
+        catch_text = f'**{row[5]}** (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)'
+    else:
+        catch_text = '**' + str(config['game']['catches']) + '**'
+    desc = f'''
+Score: **{row[2]}**
+Rolls Remaining: {roll_text}
+Catches Remaining: {catch_text}
+    '''
+    embed = discord.Embed(title=f'{user} ({ctx.guild})', description=desc)
+    embed.set_thumbnail(url=user.avatar_url)
+
+    chosen_row = db.Chosen.get_by_owner(ctx.guild.id, user.id)
+    if chosen_row is not None:
+        id, hp, guild_id, owner_id, monster_id, created_timestamp = chosen_row
+        
+
+        monster_row = db.Monster.get(monster_id)
+        id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster_row
+
+        text = lib.resources.monster_full_title(id, name, type, level, exhausted_timestamp)
+
+        delta = (time.time() - created_timestamp)
+        glory = int((delta/(3600*24))**2 // (1/10))
+        if glory > 0:
+            glory += 1
+
+        text += f' [Glory: {glory}] [HP: {hp}]'
+            
+        embed.add_field(name='Chosen', value=text)
+
+    monsters = ['']
+    rows = db.Monster.get_by_owner(ctx.guild.id, user.id)
+    if len(rows) > 0:
+        for monster in rows:
+            id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster
+            monster = lib.resources.get_monster(type)
+
+            text = lib.resources.monster_full_title(id, name, type, level, exhausted_timestamp) + '\n'
+            
+            if len(monsters[-1]) + len(text) > 1000:
+                monsters.append(text)
+            else:
+                monsters[-1] += text
+
+        for page in monsters:
+            embed.add_field(name='Monsters', value=page, inline=False)
+
+    await ctx.message.channel.send(embed=embed)
+
 
 @bot.event
 async def on_ready():
@@ -87,7 +156,7 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
-        pass
+        raise error
     else:
         print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
@@ -157,50 +226,8 @@ async def resetme(ctx):
 @commands.check(guild_exists_check)
 @commands.check(user_exists_check)
 async def me(ctx):
-    row = db.User.get(ctx.message.author.id, ctx.guild.id)
-
-    roll_countdown = (row[4] + config['game']['roll_cooldown']) - time.time()
-    if roll_countdown > 0:
-        roll_text = f'**{row[3]}** (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)'
-    else:
-        roll_text = '**' + str(config['game']['rolls']) + '**'
-
-    catch_countdown = (row[6] + config['game']['catch_cooldown']) - time.time()
-    if catch_countdown > 0:
-        catch_text = f'**{row[5]}** (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)'
-    else:
-        catch_text = '**' + str(config['game']['catches']) + '**'
-    desc = f'''
-Score: **{row[2]}**
-Rolls Remaining: {roll_text}
-Catches Remaining: {catch_text}
-    '''
-    embed = discord.Embed(title=f'{ctx.message.author} ({ctx.guild})', description=desc)
-    embed.set_thumbnail(url=ctx.message.author.avatar_url)
-
-    monsters = ['']
-    rows = db.Monster.get_by_owner(ctx.guild.id, ctx.message.author.id)
-    if len(rows) > 0:
-        for monster in rows:
-            id, name, type, level, guild_id, owner_id = monster
-            monster = lib.resources.get_monster(type)
-            cr = monster['visual_cr']
-
-            stars = ''.join(['★' for i in range(level)])
-            if name == type:
-                text = f'#{id} **{name}** [CR: {cr}] [{stars}] \n'
-            else:
-                text = f'#{id} **{name}** ({type}) [CR: {cr}] [{stars}] \n'
-            
-            if len(monsters[-1]) + len(text) > 1000:
-                monsters.append(text)
-            else:
-                monsters[-1] += text
-
-        for page in monsters:
-            embed.add_field(name='Monsters', value=page, inline=False)
-
-    await ctx.message.channel.send(embed=embed)
+    user = ctx.message.author
+    await user_info(user, ctx)
 
 @bot.command(aliases=['u', 'user'])
 @commands.check(guild_exists_check)
@@ -208,58 +235,7 @@ Catches Remaining: {catch_text}
 async def userinfo(ctx, user_name):
     user = get_user(user_name, ctx.guild.members)
 
-    if user is None or not await user_exists(user.id, ctx.guild.id):
-        await ctx.message.channel.send(f'User {user_name} not found')
-        return
-
-    row = db.User.get(user.id, ctx.guild.id)
-
-    if row is None:
-        await ctx.message.channel.send(f'User {user_name} not found')
-        return
-
-    roll_countdown = (row[4] + config['game']['roll_cooldown']) - time.time()
-    if roll_countdown > 0:
-        roll_text = f'**{row[3]}** (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)'
-    else:
-        roll_text = '**' + str(config['game']['rolls']) + '**'
-
-    catch_countdown = (row[6] + config['game']['catch_cooldown']) - time.time()
-    if catch_countdown > 0:
-        catch_text = f'**{row[5]}** (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)'
-    else:
-        catch_text = '**' + str(config['game']['catches']) + '**'
-    desc = f'''
-Score: **{row[2]}**
-Rolls Remaining: {roll_text}
-Catches Remaining: {catch_text}
-    '''
-    embed = discord.Embed(title=f'{user} ({ctx.guild})', description=desc)
-    embed.set_thumbnail(url=user.avatar_url)
-
-    monsters = ['']
-    rows = db.Monster.get_by_owner(ctx.guild.id, user.id)
-    if len(rows) > 0:
-        for monster in rows:
-            id, name, type, level, guild_id, owner_id = monster
-            monster = lib.resources.get_monster(type)
-            cr = monster['visual_cr']
-
-            stars = ''.join(['★' for i in range(level)])
-            if name == type:
-                text = f'#{id} **{name}** [CR: {cr}] [{stars}] \n'
-            else:
-                text = f'#{id} **{name}** ({type}) [CR: {cr}] [{stars}] \n'
-            
-            if len(monsters[-1]) + len(text) > 1000:
-                monsters.append(text)
-            else:
-                monsters[-1] += text
-
-        for page in monsters:
-            embed.add_field(name='Monsters', value=page, inline=False)
-
-    await ctx.message.channel.send(embed=embed)
+    await user_info(user, ctx)
 
 
 @bot.command(aliases=['ex', 'roll'])
@@ -342,12 +318,16 @@ async def view(ctx, monster):
         if row is None:
             await ctx.message.channel.send(f'Monster with id {monster_id} not found')
             return
-        id, name, type, level, guild_id, owner_id = row
+        id, name, type, level, exhausted_timestamp, guild_id, owner_id = row
         monster = lib.resources.get_monster(type)
 
         owner = get_user_by_id(owner_id, ctx.guild.members)
 
-        embed = lib.resources.generate_caught_monster_embed(name, monster, owner, level)
+        row = db.Chosen.get_by_monster(id)
+        chosen = row is not None
+        hp = row[1] if chosen else 0
+
+        embed = lib.resources.generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp, chosen=chosen, hp=hp)
     except ValueError:
         monster= lib.resources.get_monster(monster)
         embed = lib.resources.generate_monster_embed(monster)
@@ -390,7 +370,7 @@ async def combine(ctx, monster1: int, monster2: int, monster3: int):
             await ctx.message.channel.send(f'Monster with id {monster} not found in your collection')
             return
 
-        id, name, type, level, guild_id, owner_id = row
+        id, name, type, level, exhausted_timestamp, guild_id, owner_id = row
         data.append(row)
         if guild_id != ctx.guild.id or owner_id != ctx.message.author.id:
             await ctx.message.channel.send(f'Monster with id {monster} not found in your collection')
@@ -421,7 +401,7 @@ async def trade(ctx, given_id: int, taken_id: int):
     if given_row is None:
         await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
         return
-    id, name, type, level, guild_id, owner_id = given_row
+    id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
     if guild_id != ctx.guild.id or owner_id != ctx.message.author.id:
         await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
         return
@@ -430,26 +410,18 @@ async def trade(ctx, given_id: int, taken_id: int):
     if taken_row is None:
         await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
         return
-    id, name, type, level, guild_id, owner_id = taken_row
+    id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
     if guild_id != ctx.guild.id:
         await ctx.message.channel.send(f'Monster with id {given_id} not found on this server')
         return
 
     owner = get_user_by_id(owner_id, ctx.guild.members)
 
-    def monster_full_title(name, type, level):
-        cr = lib.resources.get_monster(type)['visual_cr']
-        stars = ''.join(['★' for i in range(level)])
-        if name != type:
-            return f'**{name}** ({type}) [Cr: {cr}] [{stars}]'
-        else:
-            return f'**{name}** [Cr: {cr}] [{stars}]'
-
     title = 'Trade Offer'
-    given_id, name, type, level, guild_id, owner_id = given_row
-    description = f'{ctx.message.author} offers {monster_full_title(name, type, level)}'
-    taken_id, name, type, level, guild_id, owner_id = taken_row
-    description += f' in exchange for {monster_full_title(name, type, level)} by {owner.mention}'
+    given_id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
+    description = f'{ctx.message.author} offers {lib.resources.monster_full_title(id, name, type, level, exhausted_timestamp)}'
+    taken_id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
+    description += f' in exchange for {lib.resources.monster_full_title(id, name, type, level, exhausted_timestamp)} by {owner.mention}'
 
     embed = discord.Embed(title=title, description=description)
     embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
@@ -473,6 +445,145 @@ async def trade(ctx, given_id: int, taken_id: int):
         db.Monster.change_owner(given_id, owner.id)
         db.Monster.change_owner(taken_id, ctx.message.author.id)
         await ctx.message.channel.send(embed=embed)
+
+
+@bot.command(aliases=['choose', 'chose'])
+@commands.check(guild_exists_check)
+@commands.check(user_exists_check)
+async def chosen(ctx, monster_id: int):
+
+    monster_row = db.Monster.get(monster_id)
+    if monster_row is None:
+        await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+        return
+    id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster_row
+    if guild_id != ctx.guild.id or owner_id != ctx.message.author.id:
+        await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+        return
+
+    row = db.Chosen.get_by_owner(ctx.guild.id, ctx.message.author.id)
+    if row is not None:
+        id, hp, guild_id, owner_id, old_monster_id, created_timestamp = row
+
+        delta = (time.time() - created_timestamp)
+        glory = int((delta/(3600*24))**2 // (1/10))
+        if glory > 0:
+            glory += 1
+
+        row = db.User.get(ctx.message.author.id, ctx.guild.id)
+        _, _, score, rolls, roll_timestamp, catches, catch_timestamp = row
+        db.User.score(ctx.message.author.id, ctx.guild.id, score+glory)
+
+        await ctx.message.channel.send(f'You have gained {glory} glory with your chosen.')
+
+        db.Chosen.remove(id)
+
+        db.Monster.exhaust(monster_id, time.time()+(3600*24))
+
+        if monster_id == old_monster_id:
+            return
+
+    id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster_row
+
+    if time.time() < exhausted_timestamp:
+        delta = exhausted_timestamp - time.time()
+        await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
+        return
+
+    monster = lib.resources.get_monster(type)
+    hp = monster['hp']
+
+    db.Chosen.create(hp, ctx.guild.id, ctx.message.author.id, monster_id, time.time())
+    await ctx.message.channel.send(f'#{monster_id} **{name}** ascended to become {ctx.message.author.mention}\'s Chosen')
+
+
+@bot.command(aliases=['raid', 'a'])
+@commands.check(guild_exists_check)
+@commands.check(user_exists_check)
+async def attack(ctx, target, monster_id: int, stat):
+
+    user = get_user(target, ctx.guild.members)
+    if user is None:
+        ctx.message.channel.send(f'User *{target}* not found.')
+        return
+
+    attacker_row = db.Monster.get(monster_id)
+    if attacker_row is None:
+        await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
+        return
+    id, name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
+    if guild_id != ctx.guild.id or owner_id != ctx.message.author.id:
+        await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
+        return
+
+    stat = stat.lower()
+    if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
+        await ctx.message.channel.send(f'Stat *{stat}* is not a valid stat.')
+        return
+
+    boss_row = db.Chosen.get_by_owner(ctx.guild.id, user.id)
+    if boss_row is None:
+        await ctx.message.channel.send(f'User does not have a Chosen at the moment')
+        return
+
+    chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
+
+    boss_monster_row = db.Monster.get(monster_id)
+    id, boss_name, type, level, exhausted_timestamp, guild_id, owner_id = boss_monster_row
+    boss_monster = lib.resources.get_monster(type)
+
+    id, attacker_name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
+    attacker_monster = lib.resources.get_monster(type)
+
+    def modifier(m, s):
+        return (m[s] - 10) // 2
+
+
+    messages = []
+
+    async def send_message():
+        await ctx.message.channel.send('\n'.join(messages))
+
+
+    defense_roll = random.randint(1, 20) + modifier(boss_monster, stat)
+    attack_roll = random.randint(1, 20) + modifier(attacker_monster, stat)
+
+    if attack_roll > defense_roll:
+        messages.append(f'**{attacker_name}** ({attack_roll}) overpowers **{boss_name}** ({defense_roll})')
+    else:
+        messages.append(f'**{attacker_name}** ({attack_roll}) does not manage to attack **{boss_name}** ({defense_roll})')
+        await send_message()
+        return
+
+    defense_roll = boss_monster['ac']
+    attack_roll = random.randint(1, 20) + modifier(attacker_monster, stat)
+
+    if attack_roll > defense_roll:
+        messages.append(f'**{attacker_name}** ({attack_roll}) manages to land a hit on **{boss_name}** (AC: {defense_roll})')
+    else:
+        messages.append(f'**{boss_name}** ({attack_roll}) manages to deflect **{attacker_name}** (AC: {defense_roll})')
+        await send_message()
+        return
+
+    attack_roll = random.randint(1, 20) + modifier(attacker_monster, stat)
+    messages.append(f'**{attacker_name}** deals **{attack_roll}** to **{boss_name}**')
+
+    if hp - attack_roll < 1:
+        messages.append(f'**{boss_name}** has been defeated')
+
+        db.Chosen.remove(chosen_id)
+        db.Monster.exhaust(monster_id, time.time()+(3600*24))
+    else:
+        # for some reason the update function does not work
+        db.Chosen.damage(chosen_id, hp - attack_roll)
+        db.Chosen.remove(chosen_id)
+        chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
+        db.Chosen.create(hp - attack_roll, guild_id, owner_id, monster_id, created_timestamp)
+
+    await send_message()
+
+    
+
 
 
 bot.run(config['discord']['token'])

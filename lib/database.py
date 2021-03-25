@@ -23,8 +23,11 @@ def delete_tables(conn):
         DROP TABLE users CASCADE;
         ''',
         '''
-        DROP TABLE monsters; 
+        DROP TABLE monsters CASCADE; 
         ''',
+        '''
+        DROP TABLE chosen;
+        '''
         '''
         DROP TABLE free_monsters; 
         '''
@@ -33,7 +36,14 @@ def delete_tables(conn):
     cur = conn.cursor()
 
     for c in commands:
-        cur.execute(c)
+        try:    
+            cur.execute(c)
+        except Exception as e:
+            print('could not execute command', c)
+            
+            if not type(e) is psycopg2.errors.UndefinedTable:
+                cur.close()
+                raise e
 
     conn.commit()
     cur.close()
@@ -42,7 +52,7 @@ def create_tables(conn):
     commands = (
         '''
         CREATE TABLE guilds (
-            id bigint PRIMARY KEY
+            id bigint PRIMARY KEY UNIQUE NOT NULL
         )
         ''',
         '''
@@ -59,13 +69,25 @@ def create_tables(conn):
         ''',
         '''
         CREATE TABLE monsters (
-            id SERIAL,
+            id SERIAL UNIQUE NOT NULL,
             name text,
             type text,
             level int,
+            exhausted_timestamp double precision,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE, 
             owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
             PRIMARY KEY (id, owner_id)
+        );
+        ''',
+        '''
+        CREATE TABLE chosen (
+            id SERIAL UNIQUE NOT NULL,
+            HP int,
+            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
+            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
+            monster_id bigint REFERENCES monsters(id) ON DELETE CASCADE, 
+            created_timestamp double precision,
+            PRIMARY KEY (id, monster_id)
         );
         ''',
         '''
@@ -81,7 +103,11 @@ def create_tables(conn):
     cur = conn.cursor()
 
     for c in commands:
-        cur.execute(c)
+        try:    
+            cur.execute(c)
+        except Exception as e:
+            print('could not execute command', c)
+            raise e
 
     conn.commit()
     cur.close()
@@ -232,10 +258,20 @@ class Monster:
         cur.close()
 
     @staticmethod
+    def exhaust(id, exhausted_timestamp):
+        cur = conn.cursor()
+        command = '''UPDATE monsters
+                    SET exhausted_timestamp = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (exhausted_timestamp, id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
     def create(name, level, guild_id, owner_id):
         cur = conn.cursor()
-        command = '''INSERT INTO monsters(name, type, level, guild_id, owner_id) VALUES (%s, %s, %s, %s, %s);'''
-        cur.execute(command, (name, name, level, guild_id, owner_id))
+        command = '''INSERT INTO monsters(name, type, level, exhausted_timestamp, guild_id, owner_id) VALUES (%s, %s, %s, %s, %s, %s);'''
+        cur.execute(command, (name, name, level, 0, guild_id, owner_id))
         conn.commit()
         cur.close()
 
@@ -243,6 +279,61 @@ class Monster:
     def remove(id):
         cur = conn.cursor()
         command = '''DELETE FROM monsters WHERE id = %s'''
+        cur.execute(command, (id,))
+        cur.close()
+
+
+class Chosen:
+
+    @staticmethod
+    def get(id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM chosen WHERE id = %s'''
+        cur.execute(command, (id,))
+        row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def get_by_monster(id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM chosen WHERE monster_id = %s'''
+        cur.execute(command, (id,))
+        row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def get_by_owner(guild_id, owner_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM chosen WHERE guild_id = %s AND owner_id = %s'''
+        cur.execute(command, (guild_id, owner_id))
+        row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def create(hp, guild_id, owner_id, monster_id, created_timestamp):
+        cur = conn.cursor()
+        command = '''INSERT INTO chosen(hp, guild_id, owner_id, monster_id, created_timestamp) VALUES (%s, %s, %s, %s, %s);'''
+        cur.execute(command, (hp, guild_id, owner_id, monster_id, created_timestamp))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def damage(hp, id):
+        cur = conn.cursor()
+        command = '''UPDATE chosen
+                    SET HP = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (hp, id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def remove(id):
+        cur = conn.cursor()
+        command = '''DELETE FROM chosen WHERE id = %s'''
         cur.execute(command, (id,))
         cur.close()
 
