@@ -10,5 +10,11 @@
         "database":"",
         "user":"",
         "password":""
+    },
+    "game": {
+        "rolls": 10,
+        "roll_cooldown": 10800,
+        "catches": 3,
+        "catch_cooldown": 21600
     }
 }

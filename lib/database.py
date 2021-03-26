@@ -57,14 +57,15 @@ def create_tables(conn):
         ''',
         '''
         CREATE TABLE users ( 
-            id bigint UNIQUE NOT NULL,
+            id SERIAL UNIQUE NOT NULL,
+            user_id bigint NOT NULL,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
             score int,
             rolls int,
             roll_timestamp double precision,
             catches int,
             catch_timestamp double precision,
-            PRIMARY KEY (id, guild_id)
+            PRIMARY KEY (user_id, guild_id)
         );
         ''',
         '''
@@ -74,7 +75,7 @@ def create_tables(conn):
             type text,
             level int,
             exhausted_timestamp double precision,
-            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE, 
+            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
             owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
             PRIMARY KEY (id, owner_id)
         );
@@ -135,7 +136,7 @@ class Guild:
     @staticmethod
     def remove(id):
         cur = conn.cursor()
-        command = '''DELETE FROM guilds WHERE id = %s'''
+        commands = ('''DELETE FROM guilds WHERE id = %s''')
         cur.execute(command, (id,))
         cur.close()
 
@@ -143,18 +144,36 @@ class Guild:
 class User:
 
     @staticmethod
-    def get(id, guild_id):
+    def get(id):
         cur = conn.cursor()
-        command = '''SELECT * FROM users WHERE id = %s AND guild_id = %s'''
-        cur.execute(command, (id, guild_id))
+        command = '''SELECT * FROM users WHERE id = %s'''
+        cur.execute(command, (id,))
         row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def get_by_member(guild_id, user_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM users WHERE user_id = %s AND guild_id = %s'''
+        cur.execute(command, (user_id, guild_id))
+        row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def get_by_guild(guild_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM users WHERE guild_id = %s'''
+        cur.execute(command, (guild_id,))
+        row = cur.fetchall()
         cur.close()
         return row
 
     @staticmethod
     def create(id, guild_id, timestamp):
         cur = conn.cursor()
-        command = '''INSERT INTO users(id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp) 
+        command = '''INSERT INTO users(user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp) 
         VALUES (%s, %s, %s, %s, %s, %s, %s);'''
         cur.execute(command, (id, guild_id, 0,
          config['game']['rolls'], timestamp, config['game']['catches'], timestamp))
@@ -168,13 +187,13 @@ class User:
         if roll_timestamp is not None:
             command = '''UPDATE users
                         SET rolls = %s, roll_timestamp = %s
-                        WHERE id = %s AND guild_id = %s;'''
+                        WHERE user_id = %s AND guild_id = %s;'''
             cur.execute(command, (rolls, roll_timestamp, id, guild_id))
 
         else:
             command = '''UPDATE users
                         SET rolls = %s
-                        WHERE id = %s AND guild_id = %s;'''
+                        WHERE user_id = %s AND guild_id = %s;'''
             cur.execute(command, (rolls, id, guild_id))
         
         conn.commit()
@@ -187,13 +206,13 @@ class User:
         if catch_timestamp is not None:
             command = '''UPDATE users
                         SET catches = %s, catch_timestamp = %s
-                        WHERE id = %s AND guild_id = %s;'''
+                        WHERE user_id = %s AND guild_id = %s;'''
             cur.execute(command, (catches, catch_timestamp, id, guild_id))
 
         else:
             command = '''UPDATE users
                         SET catches = %s
-                        WHERE id = %s AND guild_id = %s;'''
+                        WHERE user_id = %s AND guild_id = %s;'''
             cur.execute(command, (catches, id, guild_id))
         
         conn.commit()
@@ -204,7 +223,7 @@ class User:
         cur = conn.cursor()
         command = '''UPDATE users
                     SET score = %s
-                    WHERE id = %s AND guild_id = %s;'''
+                    WHERE user_id = %s AND guild_id = %s;'''
         cur.execute(command, (score, id, guild_id))
         conn.commit()
         cur.close()
@@ -212,7 +231,7 @@ class User:
     @staticmethod
     def remove(id, guild_id):
         cur = conn.cursor()
-        command = '''DELETE FROM users WHERE id = %s AND guild_id = %s'''
+        command = '''DELETE FROM users WHERE user_id = %s AND guild_id = %s'''
         cur.execute(command, (id, guild_id))
         cur.close()
 
@@ -300,6 +319,15 @@ class Chosen:
         command = '''SELECT * FROM chosen WHERE monster_id = %s'''
         cur.execute(command, (id,))
         row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def get_by_guild(guild_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM chosen WHERE guild_id = %s'''
+        cur.execute(command, (guild_id,))
+        row = cur.fetchall()
         cur.close()
         return row
 
