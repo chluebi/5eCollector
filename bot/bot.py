@@ -552,14 +552,14 @@ async def attack(ctx, target, monster_id: int, stat):
     chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
 
     boss_monster_row = db.Monster.get(monster_id)
-    id, boss_name, type, level, exhausted_timestamp, guild_id, owner_id = boss_monster_row
+    id, boss_name, type, boss_level, exhausted_timestamp, guild_id, owner_id = boss_monster_row
     boss_monster = lib.resources.get_monster(type)
 
-    attacker_id, attacker_name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
+    attacker_id, attacker_name, type, attacker_level, exhausted_timestamp, guild_id, owner_id = attacker_row
     attacker_monster = lib.resources.get_monster(type)
 
-    def modifier(m, s):
-        return (m[s] - 10) // 2
+    def modifier(m, s, l):
+        return (m[s] + 3 * l - 10) // 2
 
 
     messages = []
@@ -572,27 +572,27 @@ async def attack(ctx, target, monster_id: int, stat):
     defense_roll = random.randint(1, 20) 
     attack_roll = random.randint(1, 20)
 
-    if attack_roll + modifier(attacker_monster, stat) > defense_roll + modifier(boss_monster, stat):
-        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat)}) overpowers **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat)})')
+    if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll + modifier(boss_monster, stat, boss_level):
+        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) overpowers **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat, boss_level)})')
     else:
-        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat)}) does not manage to attack **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat)})')
+        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) does not manage to attack **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat, boss_level)})')
         await send_message()
         return
 
     defense_roll = boss_monster['ac']
     attack_roll = random.randint(1, 20)
 
-    if attack_roll + modifier(attacker_monster, stat) > defense_roll:
-        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat)}) manages to land a hit on **{boss_name}** (AC: {defense_roll})')
+    if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll:
+        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) manages to land a hit on **{boss_name}** (AC: {defense_roll})')
     else:
-        messages.append(f'**{boss_name}** (AC: {defense_roll}) manages to deflect **{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat)})')
+        messages.append(f'**{boss_name}** (AC: {defense_roll}) manages to deflect **{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)})')
         await send_message()
         return
 
     attack_roll = random.randint(1, 20) 
-    messages.append(f'**{attacker_name}** deals **{attack_roll} + {modifier(attacker_monster, stat)}** to **{boss_name}**')
+    messages.append(f'**{attacker_name}** deals **{attack_roll} + {modifier(attacker_monster, stat, attacker_level)}** to **{boss_name}**')
 
-    if hp - (attack_roll + modifier(attacker_monster, stat)) < 1:
+    if hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)) < 1:
         messages.append(f'**{boss_name}** has been defeated')
         db.Chosen.remove(chosen_id)
 
@@ -606,7 +606,7 @@ async def attack(ctx, target, monster_id: int, stat):
         messages.append(f'{target.mention} has gained {glory} points from Glory.')
     else:
         # for some reason the update function does not work
-        db.Chosen.damage(chosen_id, hp - (attack_roll + modifier(attacker_monster, stat)))
+        db.Chosen.damage(chosen_id, hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)))
         db.Chosen.remove(chosen_id)
         chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
         db.Chosen.create(hp - attack_roll, guild_id, owner_id, monster_id, created_timestamp)
@@ -616,7 +616,7 @@ async def attack(ctx, target, monster_id: int, stat):
         if glory > 0:
             glory += 1
         
-        glory = int(min(glory/10, int(glory/1000*(attack_roll + modifier(attacker_monster, stat)))))
+        glory = int(min(glory/10, int(glory/1000*(attack_roll + modifier(attacker_monster, stat, attacker_level)))))
 
         id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
         db.User.score(user_id, guild_id, score-glory)
