@@ -127,12 +127,12 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
         embed.add_field(name='Exhausted 😴', value=value, inline=False)
 
     for stat in ['str', 'wis', 'con', 'int', 'wis', 'dex']:
-        monster[stat] = monster[stat] + level * 3
-        modifier = (monster[stat] - 10) // 2
+        monster_stat = monster[stat] + level * 3
+        modifier = (monster_stat - 10) // 2
         if modifier > 0:
-            value = f'{monster[stat]} (+{modifier})'
+            value = f'{monster_stat} (+{modifier})'
         else:
-            value = f'{monster[stat]} ({modifier})'
+            value = f'{monster_stat} ({modifier})'
         embed.add_field(name=stat.upper(), value=value, inline=True)
     embed.set_image(url=monster['image'])
 
