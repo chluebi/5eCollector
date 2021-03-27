@@ -498,7 +498,7 @@ async def chosen(ctx, monster_id: int):
 
         await ctx.message.channel.send(f'You have gained {glory} glory with your chosen.')
 
-        db.Chosen.remove(id)
+        db.Chosen.remove_by_owner(id)
 
         db.Monster.exhaust(monster_id, time.time()+(3600*24))
 

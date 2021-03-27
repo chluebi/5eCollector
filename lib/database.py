@@ -366,6 +366,13 @@ class Chosen:
         cur.execute(command, (id,))
         cur.close()
 
+    @staticmethod
+    def remove_by_owner(id):
+        cur = conn.cursor()
+        command = '''DELETE FROM chosen WHERE owner_id = %s'''
+        cur.execute(command, (id,))
+        cur.close()
+
 
 class FreeMonster:
 
