@@ -19,6 +19,7 @@ logging.basicConfig(filename='bot.log', format='%(asctime)s - %(name)s - %(level
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='col ', intents=intents)
+bot.remove_command('help')
 
 
 async def guild_exists(id):
@@ -170,9 +171,8 @@ async def on_command_error(ctx, error):
 
 
 @bot.command()
-@commands.check(user_exists_check)
-async def test(ctx):
-    await ctx.message.channel.send(':speech_left:')
+async def help(ctx):
+    await ctx.message.channel.send(f'Help can be found here: https://chluebi.github.io/5eCollector/')
 
 
 @commands.has_permissions(administrator = True)
