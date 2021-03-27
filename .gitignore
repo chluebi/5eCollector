@@ -8,3 +8,5 @@ bot/__pycache__/
 bestiary-mm.json
 
 config.json
+
+bot.log

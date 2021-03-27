@@ -113,7 +113,7 @@ def generate_monster_embed(monster):
 
 def generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp, chosen=False, hp=0):
     stars = ''.join(['★' for i in range(level)])
-    title = name + ' CR: ' + monster['visual_cr'] + f' [{stars}]'
+    title = name + ' [CR: ' + monster['visual_cr'] + f'] [{stars}]'
     if chosen:
         title = f'[CHOSEN] [HP: {hp}] ' + title
     description = monster['type']
@@ -125,6 +125,8 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
         delta = exhausted_timestamp - time.time()
         value = f'Ready in {lib.time_handle.seconds_to_text(delta)}'
         embed.add_field(name='Exhausted 😴', value=value, inline=False)
+
+    embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
 
     for stat in ['str', 'wis', 'con', 'int', 'wis', 'dex']:
         monster_stat = monster[stat] + level * 3

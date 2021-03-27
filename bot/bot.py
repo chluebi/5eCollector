@@ -5,6 +5,7 @@ import traceback
 import sys
 import asyncio
 import random
+import logging
 
 import lib.util
 import lib.database as db
@@ -12,6 +13,8 @@ import lib.time_handle
 import lib.resources
 
 config = lib.util.config
+
+logging.basicConfig(filename='bot.log', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 intents = discord.Intents.all()
 
@@ -156,11 +159,14 @@ async def on_message(message):
 
 @bot.event
 async def on_command_error(ctx, error):
+    error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
     if isinstance(error, commands.errors.CheckFailure):
-        raise error
+        await ctx.message.channel.send('It seems like this bot has not been initialized on this server, an admin has to run ``col init`` first.')
+        logging.warning(error_message)
     else:
-        print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        message = f'An error has occured: ```{error}```'
+        await ctx.message.channel.send(message)
+        logging.error(error_message)
 
 
 @bot.command()
