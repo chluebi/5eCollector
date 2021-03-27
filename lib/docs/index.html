@@ -1,0 +1,247 @@
+<head>
+    <div class="section navbar" id="navbar">
+        <a class="navbar-title" href="#title">
+            5eCollector
+        </a>
+        <a class="navbar-button" href="https://discord.com/oauth2/authorize?client_id=823204197280907323&scope=bot&permissions=117760">
+            Invite The Bot
+        </a>
+        <a class="navbar-button" href="#tutorial">
+            Tutorial
+        </a>
+        <a class="navbar-button" href="#reference">
+            Reference
+        </a>
+    </div>
+    <div class="grid-container main">
+        <div class="section grid-container" id="title-">
+            <div class="title">
+                5eCollector
+            </div>
+            <div class="sub-title">
+                A Discord Bot which is based on 5e.tools monsters. Free and <a href="https://github.com/chluebi/5eCollector">Open Source</a>.
+            </div>
+        </div>
+        <div class="section grid-container" id="tutorial">
+            <div class="section-title">
+                Tutorial
+            </div>
+            <div class="command">
+                5eTools is a bot focused on collecting monsters from the 5e.tools Bestiary.
+                To start the bot, run (needs admin permissions).
+                <div class="code">
+                    col init
+                </div>
+                Now anyone on the server can start catching monsters!
+                Running
+                <div class="code">
+                    col me
+                </div>
+                gives you an overview over your user. This includes <b>rolls</b> and <b>catches</b>.
+                Now we can start finding some monsters! Run
+                <div class="code">
+                    col roll
+                </div>
+                several times and react to the message of any monster you would like to catch. <br>
+                Running
+                <div class="code">
+                    col me
+                </div>
+                not only reveals your new monsters but the fact that your rolls and catches reset after a certain duration. <br>
+                Running
+                <div class="code">
+                    col view [monster-id]
+                </div>
+                gives you an overview of any creature (not just your own!). 
+                The "monster-id" can be found to the left of all of your creatures.
+                For example in
+                <div class="code">
+                    #12 Mimic [Cr: 2]
+                </div>
+                The ID is 12. <br>
+                Wondering what all those stats like <b>STR</b> and <b>AC</b> mean? Combat. <br> 
+                Any member of a server can choose a <b>Chosen</b> who will gather <b>Glory</b> which
+                will converted back into points once that chosen is defeated or replaced.
+                Run 
+                <div class="code">
+                    col chosen [monster-id]
+                </div>
+                to select your chosen. They will now gather <b>Glory</b>, the longer they have been your chosen, the more glory they generate.
+                <br>
+                A Chosen's glory streak is broken once they brought to zero hp or replaced by a different chosen.
+                That means it is in your interest to defeat your friends' Chosen (if you want to stop them from 
+                gaining points at least).
+                <div class="code">
+                    col attack [player] [your-monster-id] [stat:("str"|"dex"|"con"|"int"|"wis"|"cha")]
+                </div>
+                Combat goes through three phases: <br>
+                <b>Phase 1:</b> Your creature makes a skill-check against the Chosen. 
+                If they win, they proceed to the next phase. <br>
+                <b>Phase 2:</b> Your creature makes a skill-check against the AC (Armor Class) of the Chosen.
+                If they win, they proceed to the next phase. <br>
+                <b>Phase 3:</b> Your creature makes a skill-check to determine the damage they deal to the Chosen.
+                They also have the chance to points from the Chosen's owner if the Chosen has a lot of glory.
+            </div>
+        </div>
+        <div class="section grid-container" id="reference">
+            <div class="section-title">
+                Reference
+            </div>
+            <div class="command">
+                <div class="code">
+                    col help
+                </div>
+                <div class="description">
+                    Gives you a link to this page.
+                </div>
+                <div class="code">
+                    col me
+                </div>
+                <div class="description">
+                    Gives you an overview of your user.
+                </div>
+                <div class="code">
+                    col user [user]
+                </div>
+                <div class="description">
+                   Gives you an overview of a user.
+                </div>
+                <div class="code">
+                    col view [monster-id|monster-type]
+                </div>
+                <div class="description">
+                   Gives you an overview of a monster (by ID) or a monster-type (case sensitive).
+                </div>
+                <div class="code">
+                    col rename [monster-id] [name]
+                </div>
+                <div class="description">
+                   Rename a monster.
+                </div>
+                <div class="code">
+                    col roll
+                </div>
+                <div class="description">
+                   Roll for a new creature
+                </div>
+                <div class="code">
+                    col stats ["points"|"monster"|"glory"]
+                </div>
+                <div class="description">
+                   Shows the ranking by a certain statistic.
+                </div>
+                <div class="code">
+                    col chosen [monster-id]
+                </div>
+                <div class="description">
+                   Choose a monster as your new chosen. Choosing the current chosen makes them retreat.
+                </div>
+                <div class="code">
+                    col attack [player] [your-monster-id] [stat:("str"|"dex"|"con"|"int"|"wis"|"cha")]
+                </div>
+                <div class="description">
+                   Attack a player's chosen.
+                </div>
+                <div class="code">
+                    col trade [your-monster-id] [other-monster-id]
+                </div>
+                <div class="description">
+                   Trade one of your monsters for another.
+                </div>
+                <div class="code">
+                    col combine [monster-id] [monster-id] [monster-id]
+                </div>
+                <div class="description">
+                   Combine three monsters of equal type and level into a monster of a higher level.
+                </div>
+            </div>
+        </div>
+    </div>
+</head>
+<body>
+    <style>
+        body {
+            --color-text: #000000;
+            --color-primary: #C26B29;
+            --color-dark: #753A0D;
+            --color-accent: #4B6356;
+            --color-code: #AEE8C9;
+        }
+        body {
+            font-size: 1rem;
+            color: var(--color-text);
+            font-family: "Segoe UI", "Segoe WP", Tahoma, Arial, sans-serif;
+            background-color: var(--color-primary);
+        }
+        a {
+            color: var(--color-accent);
+        }
+        @media (min-width: 768px) {
+            .main{
+                width: 50%;
+                margin: 0 auto;
+            }
+        }
+        .main {
+            grid-row-gap: 2rem;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: auto;
+            justify-content: start;
+            align-content: start;
+        }
+        .navbar {
+            display: grid;
+            grid-template-rows: auto;
+            grid-template-columns: auto auto auto auto;
+            grid-column-gap: 1rem;
+            justify-content: center;
+
+            font-size: 1.5rem;
+
+            background-color: var(--color-dark);
+        }
+        .navbar-title {
+            color: var(--color-primary);
+        }
+        .navbar-button {
+            color: var(--color-primary);
+        }
+        .section {
+            scroll-snap-align: start;
+            border-bottom: 2px solid var(--color-dark);
+        }
+        .title {
+            font-size: 3rem;
+        }
+        .sub-title {
+            font-size: 1.5rem;
+        }
+        .section-title {
+            font-size: 2rem;
+        }
+        .command {
+            margin-bottom: 1rem;
+            margin-top: 1rem;
+        }
+        .code {
+            margin: 1rem;
+
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+
+            padding-left: 1rem;
+            padding-right: 1rem;
+
+            color: var(--color-code);
+            background-color: var(--color-accent);
+            border-bottom: 2px solid var(--color-dark);
+            border-radius: 5px;
+
+            width: -moz-fit-content;
+            width: fit-content;
+            block-size: fit-content
+        }
+    </style>
+</body>
