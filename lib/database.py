@@ -199,6 +199,7 @@ class User:
         conn.commit()
         cur.close()
 
+
     @staticmethod
     def catch(id, guild_id, catches, catch_timestamp):
         cur = conn.cursor()

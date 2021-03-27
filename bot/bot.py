@@ -257,9 +257,10 @@ async def explore(ctx):
             await ctx.send(f'You are out of rolls. (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)')
             return
         else:
-            db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolls'], time.time())
+            db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolls']-1, time.time())
+    else:
+        db.User.roll(ctx.message.author.id, ctx.guild.id, rolls-1, None)
 
-    db.User.roll(ctx.message.author.id, ctx.guild.id, rolls-1, None)
     db.User.score(ctx.message.author.id, ctx.guild.id, score+1)
 
     monster = lib.resources.random_monster()
@@ -291,9 +292,9 @@ async def on_reaction_add(reaction, user):
                 await ctx.send(f'You are out of catches. (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)')
                 return
             else:
-                db.User.catch(user.id, ctx.guild.id, config['game']['catches'], time.time())
-
-        db.User.catch(user.id, ctx.guild.id, catches-1, None)
+                db.User.catch(user.id, ctx.guild.id, config['game']['catches']-1, time.time())
+        else:
+            db.User.catch(user.id, ctx.guild.id, catches-1, None)
         db.User.score(user.id, ctx.guild.id, score+10)
 
         row = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, ctx.message.id)
