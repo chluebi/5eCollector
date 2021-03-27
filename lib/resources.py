@@ -34,7 +34,7 @@ def get_ac(ac):
 
 def load_monsters():
     path = lib.util.config['resources_path']
-    with open(path + '/data/bestiary/bestiary-mm.json') as f:
+    with open(path) as f:
         data = json.load(f)['monster']
 
     monsters = {}
