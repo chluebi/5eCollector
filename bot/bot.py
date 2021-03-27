@@ -483,7 +483,8 @@ async def chosen(ctx, monster_id: int):
         await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
         return
 
-    row = db.Chosen.get_by_owner(ctx.guild.id, ctx.message.author.id)
+    owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)[0]
+    row = db.Chosen.get_by_owner(ctx.guild.id, owner_id)
     if row is not None:
         id, hp, guild_id, owner_id, old_monster_id, created_timestamp = row
 
@@ -500,7 +501,7 @@ async def chosen(ctx, monster_id: int):
 
         db.Chosen.remove_by_owner(id)
 
-        db.Monster.exhaust(monster_id, time.time()+(3600*24))
+        db.Monster.exhaust(old_monster_id, time.time()+(3600*24))
 
         if monster_id == old_monster_id:
             return
@@ -515,7 +516,7 @@ async def chosen(ctx, monster_id: int):
     monster = lib.resources.get_monster(type)
     hp = monster['hp']
 
-    db.Chosen.create(hp, ctx.guild.id, user_id, monster_id, time.time())
+    db.Chosen.create(hp, ctx.guild.id, owner_id, monster_id, time.time())
     await ctx.message.channel.send(f'#{monster_id} **{name}** ascended to become {ctx.message.author.mention}\'s Chosen')
 
 
