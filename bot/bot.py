@@ -536,7 +536,7 @@ async def attack(ctx, target, monster_id, stat):
     user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)[0]
 
     if target is None:
-        ctx.message.channel.send(f'User *{target}* not found.')
+        await ctx.message.channel.send(f'User *{target}* not found.')
         return
 
     async def send_message():
@@ -571,7 +571,6 @@ async def attack(ctx, target, monster_id, stat):
             return messages
 
         defense_roll = boss_monster['ac']
-        attack_roll = random.randint(1, 20)
 
         if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll:
             messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) manages to land a hit on **{boss_name}** (AC: {defense_roll})')
@@ -579,10 +578,11 @@ async def attack(ctx, target, monster_id, stat):
             messages.append(f'**{boss_name}** (AC: {defense_roll}) manages to deflect **{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)})')
             return messages
 
-        attack_roll = random.randint(1, 20) 
         messages.append(f'**{attacker_name}** deals **{attack_roll} + {modifier(attacker_monster, stat, attacker_level)}** to **{boss_name}**')
+        
+        damage = attack_roll + modifier(attacker_monster, stat, attacker_level)
 
-        if hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)) < 1:
+        if hp - (damage) < 1:
             messages.append(f'**{boss_name}** has been defeated')
             db.Chosen.remove(chosen_id)
 
@@ -596,17 +596,17 @@ async def attack(ctx, target, monster_id, stat):
             messages.append(f'{target.mention} has gained {glory} points from Glory.')
         else:
             # for some reason the update function does not work
-            db.Chosen.damage(chosen_id, hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)))
+            # db.Chosen.damage(chosen_id, hp - (damage))
             db.Chosen.remove(chosen_id)
             chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
-            db.Chosen.create(hp - attack_roll, guild_id, owner_id, monster_id, created_timestamp)
+            db.Chosen.create(hp - damage, guild_id, owner_id, monster_id, created_timestamp)
 
             delta = (time.time() - created_timestamp)
             glory = int((delta/(3600*24))**2 // (1/10))
             if glory > 0:
                 glory += 1
             
-            glory = int(min(glory/10, int(glory/1000*(attack_roll + modifier(attacker_monster, stat, attacker_level)))))
+            glory = int(min(glory/10, int(glory/40*(attack_roll + modifier(attacker_monster, stat, attacker_level)))))
 
             id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
             db.User.score(user_id, guild_id, score-glory)
