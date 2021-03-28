@@ -273,13 +273,23 @@ async def explore(ctx):
 
 
 @bot.event
-async def on_reaction_add(reaction, user):
-    ctx = await bot.get_context(reaction.message)
+async def on_raw_reaction_add(payload):
+    print(payload)
+    guild = bot.get_guild(payload.guild_id)
+    channel = guild.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+    print(guild, channel, message)
+
+    user = guild.get_member(payload.user_id)
+    print(user)
+
+
+    ctx = await bot.get_context(message)
 
     if user.bot is True:
         return
     
-    if reaction.emoji == '🗨️':
+    if payload.emoji.name == '🗨️':
         row = db.User.get_by_member(ctx.guild.id, user.id)
         if row is None:
             return
