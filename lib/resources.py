@@ -139,7 +139,7 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
         else:
             value = f'{monster_stat} ({modifier})'
         embed.add_field(name=stat.upper(), value=value, inline=True)
-    embed.set_image(url=monster['image'])
+    embed.set_thumbnail(url=monster['image'])
 
     embed.set_author(name=str(owner), icon_url=owner.avatar_url)
 
