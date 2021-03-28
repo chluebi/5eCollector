@@ -567,7 +567,7 @@ async def attack(ctx, target, monster_id: int, stat):
     attacker_monster = lib.resources.get_monster(type)
 
     def modifier(m, s, l):
-        return (m[s] + 3 * l - 10) // 2
+        return (m[s] + 3 * (l-1) - 10) // 2
 
 
     messages = []

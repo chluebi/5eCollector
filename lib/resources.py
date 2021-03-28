@@ -100,6 +100,8 @@ def generate_monster_embed(monster):
     description = monster['type']
     embed = discord.Embed(title=title, description=description, url=monster['link'])
 
+    embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
+
     for stat in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
         modifier = (monster[stat] - 10) // 2
         if modifier > 0:
@@ -129,7 +131,7 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
     embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
 
     for stat in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
-        monster_stat = monster[stat] + level * 3
+        monster_stat = monster[stat] + (level-1) * 3
         modifier = (monster_stat - 10) // 2
         if modifier > 0:
             value = f'{monster_stat} (+{modifier})'
