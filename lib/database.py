@@ -136,7 +136,7 @@ class Guild:
     @staticmethod
     def remove(id):
         cur = conn.cursor()
-        commands = ('''DELETE FROM guilds WHERE id = %s''')
+        command = ('''DELETE FROM guilds WHERE id = %s''')
         cur.execute(command, (id,))
         cur.close()
 
