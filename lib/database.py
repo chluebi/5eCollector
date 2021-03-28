@@ -350,7 +350,7 @@ class Chosen:
         cur.close()
 
     @staticmethod
-    def damage(hp, id):
+    def damage(id, hp):
         cur = conn.cursor()
         command = '''UPDATE chosen
                     SET HP = %s

@@ -595,11 +595,7 @@ async def attack(ctx, target, monster_id, stat):
             db.User.score(user_id, guild_id, score+glory)
             messages.append(f'{target.mention} has gained {glory} points from Glory.')
         else:
-            # for some reason the update function does not work
-            # db.Chosen.damage(chosen_id, hp - (damage))
-            db.Chosen.remove(chosen_id)
-            chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
-            db.Chosen.create(hp - damage, guild_id, owner_id, monster_id, created_timestamp)
+            db.Chosen.damage(chosen_id, hp - (damage))
 
             delta = (time.time() - created_timestamp)
             glory = int((delta/(3600*24))**2 // (1/10))
