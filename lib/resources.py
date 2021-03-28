@@ -101,6 +101,7 @@ def generate_monster_embed(monster):
     embed = discord.Embed(title=title, description=description, url=monster['link'])
 
     embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
+    embed.add_field(name='HP (max hp)', value=monster['hp'], inline=False)
 
     for stat in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
         modifier = (monster[stat] - 10) // 2
