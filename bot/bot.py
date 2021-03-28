@@ -530,7 +530,7 @@ async def chosen(ctx, monster_id: int):
 @bot.command(aliases=['raid', 'a'])
 @commands.check(guild_exists_check)
 @commands.check(user_exists_check)
-async def attack(ctx, target, monster_id: int, stat):
+async def attack(ctx, target, monster_id, stat):
 
     target = get_user(target, ctx.guild.members)
     user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)[0]
@@ -539,19 +539,83 @@ async def attack(ctx, target, monster_id: int, stat):
         ctx.message.channel.send(f'User *{target}* not found.')
         return
 
-    attacker_row = db.Monster.get(monster_id)
-    if attacker_row is None:
-        await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
-        return
-    id, name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
-    if guild_id != ctx.guild.id or owner_id != user_id:
-        await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
-        return
+    async def send_message():
+        await ctx.message.channel.send('\n'.join(messages))
 
-    if time.time() < exhausted_timestamp:
-        delta = exhausted_timestamp - time.time()
-        await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
-        return
+
+    def attack_monster(boss_row, attacker_row):
+        chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
+
+        boss_monster_row = db.Monster.get(monster_id)
+        id, boss_name, type, boss_level, exhausted_timestamp, guild_id, owner_id = boss_monster_row
+        boss_monster = lib.resources.get_monster(type)
+
+        attacker_id, attacker_name, type, attacker_level, exhausted_timestamp, guild_id, owner_id = attacker_row
+        attacker_monster = lib.resources.get_monster(type)
+
+        def modifier(m, s, l):
+            return (m[s] + 3 * (l-1) - 10) // 2
+
+
+        messages = []
+
+        db.Monster.exhaust(attacker_id, time.time()+(3600))
+
+        defense_roll = random.randint(1, 20) 
+        attack_roll = random.randint(1, 20)
+
+        if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll + modifier(boss_monster, stat, boss_level):
+            messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) overpowers **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat, boss_level)})')
+        else:
+            messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) does not manage to attack **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat, boss_level)})')
+            return messages
+
+        defense_roll = boss_monster['ac']
+        attack_roll = random.randint(1, 20)
+
+        if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll:
+            messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) manages to land a hit on **{boss_name}** (AC: {defense_roll})')
+        else:
+            messages.append(f'**{boss_name}** (AC: {defense_roll}) manages to deflect **{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)})')
+            return messages
+
+        attack_roll = random.randint(1, 20) 
+        messages.append(f'**{attacker_name}** deals **{attack_roll} + {modifier(attacker_monster, stat, attacker_level)}** to **{boss_name}**')
+
+        if hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)) < 1:
+            messages.append(f'**{boss_name}** has been defeated')
+            db.Chosen.remove(chosen_id)
+
+            delta = (time.time() - created_timestamp)
+            glory = int((delta/(3600*24))**2 // (1/10))
+            if glory > 0:
+                glory += 1
+
+            id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
+            db.User.score(user_id, guild_id, score+glory)
+            messages.append(f'{target.mention} has gained {glory} points from Glory.')
+        else:
+            # for some reason the update function does not work
+            db.Chosen.damage(chosen_id, hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)))
+            db.Chosen.remove(chosen_id)
+            chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
+            db.Chosen.create(hp - attack_roll, guild_id, owner_id, monster_id, created_timestamp)
+
+            delta = (time.time() - created_timestamp)
+            glory = int((delta/(3600*24))**2 // (1/10))
+            if glory > 0:
+                glory += 1
+            
+            glory = int(min(glory/10, int(glory/1000*(attack_roll + modifier(attacker_monster, stat, attacker_level)))))
+
+            id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
+            db.User.score(user_id, guild_id, score-glory)
+            
+            id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+            db.User.score(ctx.message.author.id, ctx.guild.id, score+glory)
+            messages.append(f'{ctx.message.author.mention} has stolen {glory} points by attacking {target}.')
+
+        return messages
 
     stat = stat.lower()
     if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
@@ -564,83 +628,70 @@ async def attack(ctx, target, monster_id: int, stat):
         await ctx.message.channel.send(f'User does not have a Chosen at the moment')
         return
 
-    chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
+    if monster_id == 'all':
+        attackers = []
+        rows = db.Monster.get_by_owner(ctx.guild.id, user_id)
+        for monster in rows:
+            id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster
+            if time.time() < exhausted_timestamp:
+                continue
+            
+            attackers.append(id)
 
-    boss_monster_row = db.Monster.get(monster_id)
-    id, boss_name, type, boss_level, exhausted_timestamp, guild_id, owner_id = boss_monster_row
-    boss_monster = lib.resources.get_monster(type)
+        if len(attackers) < 1:
+            await ctx.message.channel.send('All of your monsters are exhausted at the moment.')
+            return
 
-    attacker_id, attacker_name, type, attacker_level, exhausted_timestamp, guild_id, owner_id = attacker_row
-    attacker_monster = lib.resources.get_monster(type)
+        messages = []
+        for monster_id in attackers:
+            monster_id = int(monster_id)
+            attacker_row = db.Monster.get(monster_id)
 
-    def modifier(m, s, l):
-        return (m[s] + 3 * (l-1) - 10) // 2
+            if attacker_row is None:
+                await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
+                return
+            id, name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
+            if guild_id != ctx.guild.id or owner_id != user_id:
+                await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
+                return
 
+            if time.time() < exhausted_timestamp:
+                delta = exhausted_timestamp - time.time()
+                await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
+                return
 
-    messages = []
+            messages.append('')
+            messages += attack_monster(boss_row, attacker_row)
 
-    async def send_message():
-        await ctx.message.channel.send('\n'.join(messages))
+        formatted_message = ['']
+        for m in messages:
+            if len(formatted_message[-1]) + len(m) > 1800:
+                formatted_message.append(m)
+            else:
+                formatted_message[-1] += m + '\n'
 
-    db.Monster.exhaust(attacker_id, time.time()+(3600))
-
-    defense_roll = random.randint(1, 20) 
-    attack_roll = random.randint(1, 20)
-
-    if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll + modifier(boss_monster, stat, boss_level):
-        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) overpowers **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat, boss_level)})')
+        for m in formatted_message:
+            await ctx.message.channel.send(m)
     else:
-        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) does not manage to attack **{boss_name}** ({defense_roll}+{modifier(boss_monster, stat, boss_level)})')
+        monster_id = int(monster_id)
+        attacker_row = db.Monster.get(monster_id)
+
+        if attacker_row is None:
+            await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
+            return
+        id, name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
+        if guild_id != ctx.guild.id or owner_id != user_id:
+            await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
+            return
+
+        if time.time() < exhausted_timestamp:
+            delta = exhausted_timestamp - time.time()
+            await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
+            return
+
+        messages = attack_monster(boss_row, attacker_row)
+
         await send_message()
-        return
-
-    defense_roll = boss_monster['ac']
-    attack_roll = random.randint(1, 20)
-
-    if attack_roll + modifier(attacker_monster, stat, attacker_level) > defense_roll:
-        messages.append(f'**{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)}) manages to land a hit on **{boss_name}** (AC: {defense_roll})')
-    else:
-        messages.append(f'**{boss_name}** (AC: {defense_roll}) manages to deflect **{attacker_name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_level)})')
-        await send_message()
-        return
-
-    attack_roll = random.randint(1, 20) 
-    messages.append(f'**{attacker_name}** deals **{attack_roll} + {modifier(attacker_monster, stat, attacker_level)}** to **{boss_name}**')
-
-    if hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)) < 1:
-        messages.append(f'**{boss_name}** has been defeated')
-        db.Chosen.remove(chosen_id)
-
-        delta = (time.time() - created_timestamp)
-        glory = int((delta/(3600*24))**2 // (1/10))
-        if glory > 0:
-            glory += 1
-
-        id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
-        db.User.score(user_id, guild_id, score+glory)
-        messages.append(f'{target.mention} has gained {glory} points from Glory.')
-    else:
-        # for some reason the update function does not work
-        db.Chosen.damage(chosen_id, hp - (attack_roll + modifier(attacker_monster, stat, attacker_level)))
-        db.Chosen.remove(chosen_id)
-        chosen_id, hp, guild_id, owner_id, monster_id, created_timestamp = boss_row
-        db.Chosen.create(hp - attack_roll, guild_id, owner_id, monster_id, created_timestamp)
-
-        delta = (time.time() - created_timestamp)
-        glory = int((delta/(3600*24))**2 // (1/10))
-        if glory > 0:
-            glory += 1
-        
-        glory = int(min(glory/10, int(glory/1000*(attack_roll + modifier(attacker_monster, stat, attacker_level)))))
-
-        id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
-        db.User.score(user_id, guild_id, score-glory)
-        
-        id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
-        db.User.score(ctx.message.author.id, ctx.guild.id, score+glory)
-        messages.append(f'{ctx.message.author.mention} has stolen {glory} points by attacking {target}.')
-
-    await send_message()
 
 
 @bot.command(aliases=['stat', 'ranking'])
