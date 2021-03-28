@@ -274,14 +274,11 @@ async def explore(ctx):
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    print(payload)
     guild = bot.get_guild(payload.guild_id)
     channel = guild.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
-    print(guild, channel, message)
 
     user = guild.get_member(payload.user_id)
-    print(user)
 
 
     ctx = await bot.get_context(message)
