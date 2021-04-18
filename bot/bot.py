@@ -129,6 +129,7 @@ Catches Remaining: {catch_text}
 
     monsters = ['']
     rows = db.Monster.get_by_owner(ctx.guild.id, user_db_id)
+    rows.sort(key=lambda x: x[0])
     if len(rows) > 0:
         for monster in rows:
             id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster
