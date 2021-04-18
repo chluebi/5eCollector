@@ -116,6 +116,9 @@ def create_tables(conn):
 
 class Guild:
 
+    def __init__(self, row):
+        self.id = row[0]
+
     @staticmethod
     def get(id):
         cur = conn.cursor()
@@ -123,7 +126,10 @@ class Guild:
         cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return Guild(row)
 
     @staticmethod
     def create(id):
@@ -143,6 +149,9 @@ class Guild:
 
 class User:
 
+    def __init__(self, row):
+        self.id, self.user_id, self.guild_id, self.score, self.rolls, self.roll_timestamp, self.catches, self.catch_timestamp = row
+
     @staticmethod
     def get(id):
         cur = conn.cursor()
@@ -150,7 +159,10 @@ class User:
         cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return User(row)
 
     @staticmethod
     def get_by_member(guild_id, user_id):
@@ -159,16 +171,19 @@ class User:
         cur.execute(command, (user_id, guild_id))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return User(row)
 
     @staticmethod
     def get_by_guild(guild_id):
         cur = conn.cursor()
         command = '''SELECT * FROM users WHERE guild_id = %s'''
         cur.execute(command, (guild_id,))
-        row = cur.fetchall()
+        rows = cur.fetchall()
         cur.close()
-        return row
+        return [User(row) for row in rows]
 
     @staticmethod
     def create(id, guild_id, timestamp):
@@ -220,7 +235,7 @@ class User:
         cur.close()
 
     @staticmethod
-    def score(id, guild_id, score):
+    def set_score(id, guild_id, score):
         cur = conn.cursor()
         command = '''UPDATE users
                     SET score = %s
@@ -239,6 +254,9 @@ class User:
 
 class Monster:
 
+    def __init__(self, row):
+        self.id, self.name, self.type, self.level, self.exhausted_timestamp, self.guild_id, self.owner_id = row
+
     @staticmethod
     def get(id):
         cur = conn.cursor()
@@ -246,7 +264,10 @@ class Monster:
         cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return Monster(row)
 
     @staticmethod
     def get_by_owner(guild_id, owner_id):
@@ -255,7 +276,7 @@ class Monster:
         cur.execute(command, (guild_id, owner_id))
         rows = cur.fetchall()
         cur.close()
-        return rows
+        return [Monster(row) for row in rows]
 
     @staticmethod
     def rename(id, name):
@@ -305,6 +326,9 @@ class Monster:
 
 class Chosen:
 
+    def __init__(self, row):
+        self.id, self.hp, self.guild_id, self.owner_id, self.monster_id, self.created_timestamp = row
+
     @staticmethod
     def get(id):
         cur = conn.cursor()
@@ -312,7 +336,10 @@ class Chosen:
         cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return Chosen(row)
 
     @staticmethod
     def get_by_monster(id):
@@ -321,16 +348,19 @@ class Chosen:
         cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return Chosen(row)
 
     @staticmethod
     def get_by_guild(guild_id):
         cur = conn.cursor()
         command = '''SELECT * FROM chosen WHERE guild_id = %s'''
         cur.execute(command, (guild_id,))
-        row = cur.fetchall()
+        rows = cur.fetchall()
         cur.close()
-        return row
+        return [Chosen(row) for row in rows]
 
     @staticmethod
     def get_by_owner(guild_id, owner_id):
@@ -339,7 +369,10 @@ class Chosen:
         cur.execute(command, (guild_id, owner_id))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return Chosen(row)
 
     @staticmethod
     def create(hp, guild_id, owner_id, monster_id, created_timestamp):
@@ -376,6 +409,9 @@ class Chosen:
 
 class FreeMonster:
 
+    def __init__(self, row):
+        self.id, self.type, self.guild_id, self.channel_id, self.message_id = row
+
     @staticmethod
     def get(guild_id, channel_id, message_id):
         cur = conn.cursor()
@@ -383,7 +419,10 @@ class FreeMonster:
         cur.execute(command, (guild_id, channel_id, message_id))
         row = cur.fetchone()
         cur.close()
-        return row
+        if row is None:
+            return None
+        else:
+            return FreeMonster(row)
 
     @staticmethod
     def create(typ, guild_id, channel_id, message_id):
@@ -398,9 +437,9 @@ class FreeMonster:
         cur = conn.cursor()
         command = '''SELECT * FROM free_monsters'''
         cur.execute(command)
-        row = cur.fetchall()
+        rows = cur.fetchall()
         cur.close()
-        return row
+        return [FreeMonster(row) for row in rows]
 
     @staticmethod
     def remove(id):
