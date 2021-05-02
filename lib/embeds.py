@@ -67,12 +67,12 @@ Catches Remaining: {catch_text}
             else:
                 monsters[-1] += text
 
-        for page in monsters:
+        for i, page in enumerate(monsters):
             if len(embed.fields) > 3:
-                embed = discord.Embed(title=f'Continuation Monsters of {user}', description='page {len(embeds) + 1}')
+                embed = discord.Embed(title=f'Continuation Monsters of {user}', description=f'page {len(embeds) + 1}')
                 embeds.append(embed)
 
-            embed.add_field(name='Monsters', value=page, inline=False)
+            embed.add_field(name=f'Monsters (Grouping #{i})', value=page, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
