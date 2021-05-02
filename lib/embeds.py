@@ -99,7 +99,7 @@ def generate_monster_embed(monster):
     embed.add_field(name='HP (max hp)', value=monster['hp'], inline=False)
 
     for stat in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
-        modifier = (monster[stat] - 10) // 2
+        modifier = lib.util.get_modifier(monster, stat, 1)
         if modifier > 0:
             value = f'{monster[stat]} (+{modifier})'
         else:
@@ -128,8 +128,8 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
     embed.add_field(name='HP (max hp)', value=monster['hp'], inline=False)
 
     for stat in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
-        monster_stat = monster[stat] + (level-1) * 3
-        modifier = (monster_stat - 10) // 2
+        monster_stat = lib.util.get_stat(monster, stat, level)
+        modifier = lib.util.get_modifier(monster, stat, level)
         if modifier > 0:
             value = f'{monster_stat} (+{modifier})'
         else:

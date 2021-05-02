@@ -7,6 +7,7 @@ import random
 import lib.checks
 import lib.database as db
 import lib.embeds
+import lib.util
 
 
 class ChosenCog(commands.Cog):
@@ -33,11 +34,8 @@ class ChosenCog(commands.Cog):
         chosen_db = db.Chosen.get_by_owner(ctx.guild.id, owner_id)
         if chosen_db is not None:
             #id, hp, guild_id, owner_id, old_monster_id, created_timestamp = row
-
-            delta = (time.time() - chosen_db.created_timestamp)
-            glory = int((delta/(3600*24))**2 // (1/10))
-            if glory > 0:
-                glory += 1
+            
+            glory = lib.util.get_glory(chosen_db.created_timestamp)
 
             user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
             #id, user_id, _, score, rolls, roll_timestamp, catches, catch_timestamp = row
@@ -95,9 +93,7 @@ class CombatCog(commands.Cog):
             #attacker_id, attacker_name, type, attacker_level, exhausted_timestamp, guild_id, owner_id = attacker_row
             attacker_monster = lib.resources.get_monster(boss_monster_db.type)
 
-            def modifier(m, s, l):
-                return (m[s] + 3 * (l-1) - 10) // 2
-
+            modifier = lib.util.get_modifier
 
             messages = []
 
@@ -128,10 +124,7 @@ class CombatCog(commands.Cog):
                 messages.append(f'**{boss_monster_db.name}** has been defeated')
                 db.Chosen.remove(boss_db.id)
 
-                delta = (time.time() - boss_db.created_timestamp)
-                glory = int((delta/(3600*24))**2 // (1/10))
-                if glory > 0:
-                    glory += 1
+                glory = lib.util.get_glory(boss_db.created_timestamp)
 
                 user_db = db.User.get_by_member(ctx.guild.id, target.id)
                 #id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
@@ -140,10 +133,7 @@ class CombatCog(commands.Cog):
             else:
                 db.Chosen.damage(boss_db.id, boss_db.hp - damage)
 
-                delta = (time.time() - boss_db.created_timestamp)
-                glory = int((delta/(3600*24))**2 // (1/10))
-                if glory > 0:
-                    glory += 1
+                glory = lib.util.get_glory(boss_db.created_timestamp)
                 
                 glory = int(min(glory/10, int(glory/40*(attack_roll + modifier(attacker_monster, stat, attacker_db.level)))))
 
