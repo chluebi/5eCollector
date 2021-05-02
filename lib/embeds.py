@@ -50,6 +50,8 @@ Catches Remaining: {catch_text}
             
         embed.add_field(name='Chosen', value=text)
 
+    embeds = [embed]
+
     monsters = ['']
     monsters_db = db.Monster.get_by_owner(ctx.guild.id, user_db.id)
     monsters_db.sort(key=lambda x: x.id)
@@ -66,9 +68,14 @@ Catches Remaining: {catch_text}
                 monsters[-1] += text
 
         for page in monsters:
+            if len(embed.fields) > 3:
+                embed = discord.Embed(title=f'Continuation Monsters of {user}', description='page {len(embeds) + 1}')
+                embeds.append(embed)
+
             embed.add_field(name='Monsters', value=page, inline=False)
 
-    await ctx.message.channel.send(embed=embed)
+    for e in embeds:
+        await ctx.message.channel.send(embed=e)
 
 
 
