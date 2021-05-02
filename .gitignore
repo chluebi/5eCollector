@@ -12,3 +12,5 @@ config.json
 bot.log
 
 bestiary-mm_visual.json
+
+resources/

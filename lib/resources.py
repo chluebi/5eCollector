@@ -40,33 +40,42 @@ def get_ac(ac):
 
 def load_monsters():
     path = lib.util.config['resources_path']
-    with open(path) as f:
-        data = json.load(f)['monster']
 
+    data = []
+    for file in os.listdir(path):
+        with open(os.path.join(path, file)) as f:
+            data += json.load(f)['monster']
+            
     monsters = {}
     for monster in data:
-        cr = normalize_cr(monster['cr'])
-        visual_cr = normalize_visual_cr(monster['cr'])
+        try:
+            cr = normalize_cr(monster['cr'])
+            visual_cr = normalize_visual_cr(monster['cr'])
 
-        name = monster['name']
-        lowercase = name.lower()
+            name = monster['name']
+            lowercase = name.lower()
 
-        monsters[monster['name']] = {
-            'name': monster['name'],
-            'type': get_type(monster['type']),
-            'cr': cr,
-            'visual_cr': visual_cr,
-            'hp': monster['hp']['average'],
-            'ac': get_ac(monster['ac'][0]),
-            'str': monster['str'],
-            'dex': monster['dex'],
-            'con': monster['con'],
-            'int': monster['int'],
-            'wis': monster['wis'],
-            'cha': monster['cha'],
-            'link': f'https://5e.tools/bestiary.html#{lowercase}_mm'.replace(' ', '%20'),
-            'image': f'https://5e.tools/img/MM/{name}.png'.replace(' ', '%20')
-        }
+            source = monster['source']
+
+            monsters[monster['name']] = {
+                'name': monster['name'],
+                'type': get_type(monster['type']),
+                'cr': cr,
+                'visual_cr': visual_cr,
+                'hp': monster['hp']['average'],
+                'ac': get_ac(monster['ac'][0]),
+                'str': monster['str'],
+                'dex': monster['dex'],
+                'con': monster['con'],
+                'int': monster['int'],
+                'wis': monster['wis'],
+                'cha': monster['cha'],
+                'link': f'https://5e.tools/bestiary.html#{lowercase}_{source.lower()}'.replace(' ', '%20'),
+                'source': source,
+                'image': f'https://5e.tools/img/{source}/{name}.png'.replace(' ', '%20')
+            }
+        except KeyError:
+            continue
 
     return monsters
 
