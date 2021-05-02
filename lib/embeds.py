@@ -121,8 +121,8 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
         value = f'Ready in {lib.time_handle.seconds_to_text(delta)}'
         embed.add_field(name='Exhausted 😴', value=value, inline=False)
 
-    embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
-    embed.add_field(name='HP (max hp)', value=monster['hp'], inline=False)
+    embed.add_field(name='Armor Class', value=lib.util.get_ac(monster['ac'], level), inline=False)
+    embed.add_field(name='HP (max hp)', value=lib.util.get_hp(monster['hp'], level), inline=False)
 
     for stat in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
         monster_stat = lib.util.get_stat(monster, stat, level)

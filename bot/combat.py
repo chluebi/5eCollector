@@ -57,7 +57,7 @@ class ChosenCog(commands.Cog):
             return
 
         monster = lib.resources.get_monster(monster_db.type)
-        hp = monster['hp']
+        hp = lib.util.get_hp(monster['hp'], monster_db.level)
 
         db.Chosen.create(hp, ctx.guild.id, owner_id, monster_db.id, time.time())
         await ctx.message.channel.send(f'#{monster_db.id} **{monster_db.name}** ascended to become {ctx.message.author.mention}\'s Chosen')
@@ -107,48 +107,22 @@ class CombatCog(commands.Cog):
                 messages.append(f'**{attacker_db.name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_db.level)}) overpowers **{boss_monster_db.name}** ({defense_roll}+{modifier(boss_monster, stat, boss_monster_db.level)})')
             else:
                 messages.append(f'**{attacker_db.name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_db.level)}) does not manage to attack **{boss_monster_db.name}** ({defense_roll}+{modifier(boss_monster, stat, boss_monster_db.level)})')
-                return messages
+                return messages, 0
 
-            defense_roll = boss_monster['ac']
+            defense_roll = lib.util.get_ac(boss_monster['ac'], boss_monster_db.level)
 
             if attack_roll + modifier(attacker_monster, stat, attacker_db.level) > defense_roll:
                 messages.append(f'**{attacker_db.name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_db.level)}) manages to land a hit on **{boss_monster_db.name}** (AC: {defense_roll})')
             else:
                 messages.append(f'**{boss_monster_db.name}** (AC: {defense_roll}) manages to deflect **{attacker_db.name}** ({attack_roll}+{modifier(attacker_monster, stat, attacker_db.level)})')
-                return messages
+                return messages, 0
 
             messages.append(f'**{attacker_db.name}** deals **{attack_roll} + {modifier(attacker_monster, stat, attacker_db.level)}** to **{boss_monster_db.name}**')
             
             damage = attack_roll + modifier(attacker_monster, stat, attacker_db.level)
+            return messages, damage
 
-            if boss_db.hp - (damage) < 1:
-                messages.append(f'**{boss_monster_db.name}** has been defeated')
-                db.Chosen.remove(boss_db.id)
-                db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
 
-                glory = lib.util.get_glory(boss_db.created_timestamp)
-
-                user_db = db.User.get_by_member(ctx.guild.id, target.id)
-                #id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
-                db.User.set_score(user_db.user_id, user_db.guild_id, user_db.score+glory)
-                messages.append(f'{target.mention} has gained {glory} points from Glory.')
-            else:
-                db.Chosen.damage(boss_db.id, boss_db.hp - damage)
-
-                glory = lib.util.get_glory(boss_db.created_timestamp)
-                
-                glory = int(min(glory/10, int(glory/40*(attack_roll + modifier(attacker_monster, stat, attacker_db.level)))))
-
-                user_db = db.User.get_by_member(ctx.guild.id, target.id)
-                #id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, target.id)
-                db.User.set_score(user_id, user_db.guild_id, user_db.score-glory)
-                
-                user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
-                # id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
-                db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+glory)
-                messages.append(f'{ctx.message.author.mention} has stolen {glory} points by attacking {target}.')
-
-            return messages
 
         stat = stat.lower()
         if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
@@ -175,6 +149,7 @@ class CombatCog(commands.Cog):
                 await ctx.message.channel.send('All of your monsters are exhausted at the moment.')
                 return
 
+            damage = 0
             messages = []
             for monster_id in attackers:
                 monster_id = int(monster_id)
@@ -195,7 +170,22 @@ class CombatCog(commands.Cog):
                     return
 
                 messages.append('')
-                messages += attack_monster(boss_db, attacker_db)
+                m, d = attack_monster(boss_db, attacker_db)
+                messages += m
+                damage += d
+
+            boss_monster_db = db.Monster.get(boss_db.monster_id)
+
+            messages.append(f'{boss_monster_db.name} takes a total of {damage} damage.')
+            if boss_db.hp - (damage) < 1:
+                db.Chosen.remove(boss_db.id)
+                db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+
+                glory = lib.util.get_glory(boss_db.created_timestamp)
+                messages.append(f'**{boss_monster_db.name}** has been defeated with {glory} glory.')
+            else:
+                db.Chosen.damage(boss_db.id, boss_db.hp - damage)
+
 
             formatted_message = ['']
             for m in messages:
@@ -223,7 +213,7 @@ class CombatCog(commands.Cog):
                 await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
                 return
 
-            messages = attack_monster(boss_db, attacker_db)
+            messages, damage = attack_monster(boss_db, attacker_db)
 
             await send_message()
 

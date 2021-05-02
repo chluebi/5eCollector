@@ -11,7 +11,7 @@ config = parse_config()
 
 def get_glory(created_timestamp):
     delta = (time.time() - created_timestamp)
-    glory = int((delta/(3600*24))**2 // (1/10))
+    glory = int((delta/(3600*24)) * 10)
     if glory > 0:
         glory += 1
     return glory
@@ -21,3 +21,9 @@ def get_stat(monster, stat, level):
 
 def get_modifier(monster, stat, level):
     return (get_stat(monster, stat, level) - 10) // 2
+
+def get_hp(base_hp, level):
+    return int(base_hp * (level/2 + 1/2))
+
+def get_ac(base_ac, level):
+    return base_ac + level

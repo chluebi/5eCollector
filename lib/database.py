@@ -191,7 +191,7 @@ class User:
         command = '''INSERT INTO users(user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp) 
         VALUES (%s, %s, %s, %s, %s, %s, %s);'''
         cur.execute(command, (id, guild_id, 0,
-         config['game']['rolls'], timestamp, config['game']['catches'], timestamp))
+         config['game']['rolling']['rolls'], timestamp, config['game']['rolling']['catches'], timestamp))
         conn.commit()
         cur.close()
 
