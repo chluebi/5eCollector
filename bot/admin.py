@@ -43,7 +43,7 @@ class CheatCog(commands.Cog):
     @commands.has_permissions(administrator = True)
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def give(self, ctx, user_name, monster_name):
+    async def give(self, ctx, user_name, monster_name, amount: int):
         user = lib.getters.get_user(user_name, ctx.guild.members)
         
         if user is None or not await lib.checks.user_exists(user.id, ctx.guild.id):
@@ -56,8 +56,9 @@ class CheatCog(commands.Cog):
             return
 
         owner_id = db.User.get_by_member(ctx.guild.id, user.id).id
-        db.Monster.create(monster['name'], 1, ctx.guild.id, owner_id)
-        await ctx.message.channel.send(f'{user.mention} has been given {monster_name}')
+        for i in range(amount):
+            db.Monster.create(monster['name'], 1, ctx.guild.id, owner_id)
+        await ctx.message.channel.send(f'{user.mention} has been given {monster_name} (x{amount})')
 
 
 def setup(bot):
