@@ -20,6 +20,12 @@ def normalize_cr(cr):
         cr = float(int(cr_list[0])/int(cr_list[1]))
     return cr
 
+def normalize_visual_cr(cr):
+    if type(cr) is dict:
+        cr = normalize_visual_cr(cr['cr'])
+    
+    return cr
+
 def get_type(typus):
     if type(typus) is dict:
         return get_type(typus['type'])
@@ -40,6 +46,7 @@ def load_monsters():
     monsters = {}
     for monster in data:
         cr = normalize_cr(monster['cr'])
+        visual_cr = normalize_visual_cr(monster['cr'])
 
         name = monster['name']
         lowercase = name.lower()
@@ -48,7 +55,7 @@ def load_monsters():
             'name': monster['name'],
             'type': get_type(monster['type']),
             'cr': cr,
-            'visual_cr': monster['cr'],
+            'visual_cr': visual_cr,
             'hp': monster['hp']['average'],
             'ac': get_ac(monster['ac'][0]),
             'str': monster['str'],
@@ -65,6 +72,7 @@ def load_monsters():
 
 
 monsters = load_monsters()
+
 
 def random_monster():
     viable = []
