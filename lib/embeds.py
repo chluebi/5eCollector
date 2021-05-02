@@ -19,17 +19,17 @@ async def user_info(user, ctx):
         await ctx.message.channel.send(f'User not found')
         return
 
-    roll_countdown = (user_db.roll_timestamp + config['game']['roll_cooldown']) - time.time()
+    roll_countdown = (user_db.roll_timestamp + config['game']['rolling']['roll_cooldown']) - time.time()
     if roll_countdown > 0:
         roll_text = f'**{user_db.rolls}** (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)'
     else:
-        roll_text = '**' + str(config['game']['rolls']) + '**'
+        roll_text = '**' + str(config['game']['rolling']['rolls']) + '**'
 
-    catch_countdown = (user_db.catch_timestamp + config['game']['catch_cooldown']) - time.time()
+    catch_countdown = (user_db.catch_timestamp + config['game']['rolling']['catch_cooldown']) - time.time()
     if catch_countdown > 0:
         catch_text = f'**{user_db.catches}** (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)'
     else:
-        catch_text = '**' + str(config['game']['catches']) + '**'
+        catch_text = '**' + str(config['game']['rolling']['catches']) + '**'
     desc = f'''
 Score: **{user_db.score}**
 Rolls Remaining: {roll_text}
@@ -44,10 +44,7 @@ Catches Remaining: {catch_text}
 
         text = monster_full_title(monster.id, monster.name, monster.type, monster.level, monster.exhausted_timestamp)
 
-        delta = (time.time() - chosen.created_timestamp)
-        glory = int((delta/(3600*24))**2 // (1/10))
-        if glory > 0:
-            glory += 1
+        glory = lib.util.get_glory(chosen.created_timestamp)
 
         text += f' [Glory: {glory}] [HP: {chosen.hp}]'
             

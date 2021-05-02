@@ -6,6 +6,7 @@ import time
 import lib.checks
 import lib.database as db
 import lib.embeds
+import lib.util
 
 
 class UserCog(commands.Cog):
@@ -59,7 +60,7 @@ class MonsterCog(commands.Cog):
 
             chosen_db = db.Chosen.get_by_monster(monster_db.id)
             chosen = chosen_db is not None
-            hp = chosen.type if chosen else 0
+            hp = chosen_db.hp if chosen else 0
 
             embed = lib.embeds.generate_caught_monster_embed(monster_db.name, monster, owner, monster_db.level, monster_db.exhausted_timestamp, chosen=chosen, hp=hp)
         except ValueError:
@@ -226,10 +227,7 @@ class StatsCog(commands.Cog):
 
                 text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
 
-                delta = (time.time() - chosen_db.created_timestamp)
-                glory = int((delta/(3600*24))**2 // (1/10))
-                if glory > 0:
-                    glory += 1
+                glory = lib.util.get_glory(chosen_db.created_timestamp)
 
                 text += f' [Glory: {glory}] [HP: {chosen_db.hp}]'
                 text = f'{user}\'s ' + text

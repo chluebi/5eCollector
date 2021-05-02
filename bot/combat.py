@@ -9,6 +9,7 @@ import lib.database as db
 import lib.embeds
 import lib.util
 
+config = lib.util.config
 
 class ChosenCog(commands.Cog):
 
@@ -45,7 +46,7 @@ class ChosenCog(commands.Cog):
 
             db.Chosen.remove_by_owner(user_db.id)
 
-            db.Monster.exhaust(chosen_db.monster_id, time.time()+(3600*24))
+            db.Monster.exhaust(chosen_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
 
             if monster_id == chosen_db.monster_id:
                 return
@@ -91,13 +92,13 @@ class CombatCog(commands.Cog):
             boss_monster = lib.resources.get_monster(boss_monster_db.type)
 
             #attacker_id, attacker_name, type, attacker_level, exhausted_timestamp, guild_id, owner_id = attacker_row
-            attacker_monster = lib.resources.get_monster(boss_monster_db.type)
+            attacker_monster = lib.resources.get_monster(attacker_db.type)
 
             modifier = lib.util.get_modifier
 
             messages = []
 
-            db.Monster.exhaust(attacker_db.id, time.time()+(3600))
+            db.Monster.exhaust(attacker_db.id, time.time()+config['game']['combat']['exhaust_cooldown'])
 
             defense_roll = random.randint(1, 20) 
             attack_roll = random.randint(1, 20)
@@ -123,6 +124,7 @@ class CombatCog(commands.Cog):
             if boss_db.hp - (damage) < 1:
                 messages.append(f'**{boss_monster_db.name}** has been defeated')
                 db.Chosen.remove(boss_db.id)
+                db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
 
                 glory = lib.util.get_glory(boss_db.created_timestamp)
 

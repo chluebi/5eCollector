@@ -23,12 +23,12 @@ class RollCog(commands.Cog):
         user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
 
         if user_db.rolls < 1:
-            roll_countdown = (user_db.roll_timestamp + config['game']['roll_cooldown']) - time.time()
+            roll_countdown = (user_db.roll_timestamp + config['game']['rolling']['roll_cooldown']) - time.time()
             if roll_countdown > 0:
                 await ctx.send(f'You are out of rolls. (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)')
                 return
             else:
-                db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolls']-1, time.time())
+                db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolling']['rolls']-1, time.time())
         else:
             db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, None)
 
@@ -70,12 +70,12 @@ class CatchCog(commands.Cog):
             #id, user_id, _, score, rolls, roll_timestamp, catches, catch_timestamp = row
 
             if user_db.catches < 1:
-                catch_countdown = (user_db.catch_timestamp + config['game']['catch_cooldown']) - time.time()
+                catch_countdown = (user_db.catch_timestamp + config['game']['rolling']['catch_cooldown']) - time.time()
                 if catch_countdown > 0:
                     await ctx.send(f'You are out of catches. (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)')
                     return
                 else:
-                    db.User.catch(user.id, ctx.guild.id, config['game']['catches']-1, time.time())
+                    db.User.catch(user.id, ctx.guild.id, config['game']['rolling']['catches']-1, time.time())
             else:
                 db.User.catch(user.id, ctx.guild.id, user_db.catches-1, None)
             db.User.set_score(user.id, ctx.guild.id, user_db.score+10)
