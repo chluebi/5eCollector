@@ -133,33 +133,33 @@ class MonsterCog(commands.Cog):
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def trade(self, ctx, given_id: int, taken_id: int):
-        given_row = db.Monster.get(given_id)
+        given = db.Monster.get(given_id)
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
-        if given_row is None:
+        if given is None:
             await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
             return
-        id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
-        if guild_id != ctx.guild.id or owner_id != user_id:
+        # id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
+        if given.guild_id != ctx.guild.id or given.owner_id != user_id:
             await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
             return
 
-        taken_row = db.Monster.get(taken_id)
-        if taken_row is None:
-            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+        taken = db.Monster.get(taken_id)
+        if taken is None:
+            await ctx.message.channel.send(f'Monster with id {taken_id} not found in your collection')
             return
-        id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
-        if guild_id != ctx.guild.id:
-            await ctx.message.channel.send(f'Monster with id {given_id} not found on this server')
+        #id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
+        if taken.guild_id != ctx.guild.id:
+            await ctx.message.channel.send(f'Monster with id {taken_id} not found on this server')
             return
 
-        owner_id = db.User.get(owner_id)[1]
+        owner_id = db.User.get(taken.owner_id).user_id
         owner = lib.getters.get_user_by_id(owner_id, ctx.guild.members)
 
         title = 'Trade Offer'
-        given_id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
-        description = f'{ctx.message.author} offers {lib.embeds.monster_full_title(id, name, type, level, exhausted_timestamp)}'
-        taken_id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
-        description += f' in exchange for {lib.embeds.monster_full_title(id, name, type, level, exhausted_timestamp)} by {owner.mention}'
+        # given_id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
+        description = f'{ctx.message.author} offers {lib.embeds.monster_full_title(given.id, given.name, given.type, given.level, given.exhausted_timestamp)}'
+        #taken_id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
+        description += f' in exchange for {lib.embeds.monster_full_title(taken.id, taken.name, taken.type, taken.level, taken.exhausted_timestamp)} by {owner.mention}'
 
         embed = discord.Embed(title=title, description=description)
         embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
@@ -167,7 +167,7 @@ class MonsterCog(commands.Cog):
         message = await ctx.message.channel.send(embed=embed)
         await message.add_reaction('✔️')
 
-        owner_id = db.User.get(owner_id)[1]
+        owner_id = db.User.get(taken.owner_id).user_id
         def check(reaction, user):
             return user.id == owner_id and reaction.message.id == message.id and str(reaction.emoji) == '✔️'
 
