@@ -54,7 +54,7 @@ class CheatCog(commands.Cog):
             await ctx.message.channel.send(f'Monster {monster_name} not found')
             return
 
-        owner_id = db.User.get_by_member(user.id, user.id).id
+        owner_id = db.User.get_by_member(ctx.guild.id, user.id).id
         for i in range(amount):
             db.Monster.create(monster['name'], 1, ctx.guild.id, owner_id)
         await ctx.message.channel.send(f'{user.mention} has been given {monster_name} (x{amount})')
