@@ -338,137 +338,150 @@ class MonsterCog(commands.Cog):
             owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
             db.Monster.change_owner(taken_id, owner_id)
 
-class StatsCog(commands.Cog):
-    
+
+
+class GroupCog(commands.Cog):
+
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.group(name='group')
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def stats(self, ctx, category, start=1, l=10, order='+'):
+    async def group_main_command(self, ctx):
+        pass
 
-        ranking = []
-        ranking_title = ''
 
-        if category in ['points']:
+    @group_main_command.command()
+    async def view(self, ctx, group_id: int):
 
-            ranking_title = '**Ranking by Points**'
-            rows = db.User.get_by_guild(ctx.guild.id)
-            
-            for user_db in rows:
-                #user_db_id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = row
-                user = ctx.guild.get_member(user_db.user_id)
-                if user is not None:
-                    ranking.append((user_db.score, f'{user} ({user_db.score})'))
-
-        elif category in ['glory']:
-            ranking_title = '**Ranking by Glory**'
-            rows = db.Chosen.get_by_guild(ctx.guild.id)
-
-            for chosen_db in rows:
-                #id, hp, guild_id, owner_id, monster_id, created_timestamp = row
-                user = ctx.guild.get_member(db.User.get(chosen_db.owner_id).user_id)
-
-                monster_db = db.Monster.get(chosen_db.monster_id)
-                #id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster_row
-
-                text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
-
-                glory = lib.util.get_glory(chosen_db.created_timestamp)
-
-                text += f' **[Glory: {glory}]** [HP: {chosen_db.hp}]'
-                text = f'{user}\'s ' + text
-
-                ranking.append((glory, text))
-
-        elif category in ['monster', 'monsters']:
-            ranking_title = '**Ranking by Monsters**'
-            rows = db.User.get_by_guild(ctx.guild.id)
-
-            for user_db in rows:
-                #user_db_id, user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp = row
-                monster_rows = db.Monster.get_by_owner(user_db.guild_id, user_db.id)
-                user = ctx.guild.get_member(user_db.user_id)
-                ranking.append((len(monster_rows), f'{user} ({len(monster_rows)})'))
-
-        elif category in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
-            ranking_title = f'**Ranking by {category.capitalize()}**'
-            monsters = db.Monster.get_by_guild(ctx.guild.id)
-
-            if category in ['level']:
-                for monster_db in monsters:
-    
-                    user_db = db.User.get(monster_db.owner_id)
-                    user = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
-
-                    text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
-                    
-                    text += f' **[Level: {monster_db.level}]**'
-                    text = f'{user}\'s ' + text
-
-                    ranking.append((monster_db.level, text))
-            else:
-                
-                for monster_db in monsters:
-                    monster = lib.resources.get_monster(monster_db.type)
-
-                    user_db = db.User.get(monster_db.owner_id)
-                    user = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
-
-                    text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
-                    
-                    if category in ['hp']:
-                        stat = lib.util.get_hp(monster['hp'], monster_db.level)
-                    elif category in ['ac']:
-                        stat = lib.util.get_ac(monster['ac'], monster_db.level)
-                    elif category in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
-                        stat = lib.util.get_stat(monster, category, monster_db.level)
-
-                    text += f' **[{category.capitalize()}: {stat}]**'
-                    text = f'{user}\'s ' + text
-
-                    ranking.append((stat, text))
-        else:
+        if not await lib.checks.group_exists(ctx, group_id):
             return
 
-        ranking = sorted(ranking, key=lambda x: x[0], reverse=True)
-        leaderboard = list(enumerate(ranking, 1))
+        group_db = db.Group.get(group_id)
 
-        l = min(l, 100)
-        start = start - 1
-        total = len(leaderboard)
-        end = min(l, len(leaderboard[::-1][start:]))
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
 
-        end = start + end
+        await lib.embeds.group_embed(ctx, group_db, group_monsters_db)
+
+
+    @group_main_command.command()
+    async def add(self, ctx, group_id: int, monster_id: int):
+
+        if not await lib.checks.group_allowed(ctx, group_id):
+            return
+
+        group_db = db.Group.get(group_id)
+
+        monster = db.Monster.get(monster_id)
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+        if monster is None:
+            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+            return
+        if monster.guild_id != ctx.guild.id or monster.owner_id != user_id:
+            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+            return
+
+        group_monster = db.GroupMonster.get(monster_id, group_id)
+        if group_monster is not None:
+            await ctx.message.channel.send(f'This Monster is already in this group.')
+            return
+
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        index = len(group_monsters_db)
+
+        db.GroupMonster.create(monster_id, group_id, index)
+
+        await ctx.message.channel.send(f'Monster ``{monster.name}`` added to group ``{group_db.name}``.')
         
-        if order in ['-']:
-            leaderboard = leaderboard[::-1]
 
-        leaderboard = leaderboard[start:end]
-        if order in ['-']:
-            end, start = start+1, end-1
-        
-        ranking_subtitle = f'From #{leaderboard[0][0]} to #{leaderboard[-1][0]} [Total: {total}]'
+    @group_main_command.command()
+    async def remove(self, ctx, group_id: int, monster_id: int):
 
-        message = ['']
+        if not await lib.checks.group_allowed(ctx, group_id):
+            return
 
-        for i, (_, rank) in leaderboard:
-            if len(message[-1]) + len(rank) > 1800:
-                message.append(f'**#{i}** ' + rank + '\n')
-            else:
-                message[-1] += f'**#{i}** ' + rank + '\n'
+        group_db = db.Group.get(group_id)
+
+        group_monster = db.GroupMonster.get(monster_id, group_id)
+        if group_monster is None:
+            await ctx.message.channel.send(f'Monster not found in this group.')
+            return
+
+        monster = db.Monster.get(monster_id)
+
+        db.GroupMonster.remove(monster_id, group_id)
+
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        for i, m in enumerate(group_monsters_db):
+            db.GroupMonster.change_index(m.monster_id, m.group_id, i)
+
+        await ctx.message.channel.send(f'Monster ``{monster.name}`` removed from group ``{group_db.name}``.')
 
 
-        message = [f'{m}' for m in message]
+    @group_main_command.group(name='change')
+    async def change(self, ctx):
+        pass
+
+    @change.command()
+    async def name(self, ctx, id: int, new_name):
+
+        if len(new_name) > 100:
+            await ctx.message.channel.send(f'The group name can\'t be longer than 100 characters.')
+            return
+
+        if not await lib.checks.group_allowed(ctx, id):
+            return
+
+        db.Group.change_name(id, new_name)
+
+        await ctx.message.channel.send('Name successfully changed.')
+
+    @change.command()
+    async def description(self, ctx, id: int, new_description):
+
+        if len(new_description) > 500:
+            await ctx.message.channel.send(f'The group description can\'t be longer than 500 characters.')
+            return
+
+        if not await lib.checks.group_allowed(ctx, id):
+            return
+
+        db.Group.change_description(id, new_description)
+
+        await ctx.message.channel.send('Description successfully changed.')
 
 
-        message[0] =  f'{ranking_title}\n' + f'{ranking_subtitle}\n' + message[0]
+    @group_main_command.command()
+    async def create(self, ctx, name, description=''):
 
-        for m in message:
-            await ctx.message.channel.send(m)
+        if len(name) > 100:
+            await ctx.message.channel.send(f'The group name can\'t be longer than 100 characters.')
+            return
+
+        if len(description) > 500:
+            await ctx.message.channel.send(f'The group description can\'t be longer than 500 characters.')
+            return
+
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+
+        db.Group.create(ctx.guild.id, user_db.id, name, description)
+
+        await ctx.message.channel.send(f'Group ``{name}`` successfully created.')
+
+
+    @group_main_command.command()
+    async def delete(self, ctx, id: int):
+
+        if not await lib.checks.group_allowed(ctx, id):
+            return
+
+        db.Group.remove(id)
+        await ctx.message.channel.send(f'Group successfully deleted.')
+
+
 
 def setup(bot):
     bot.add_cog(UserCog(bot))
     bot.add_cog(MonsterCog(bot))
-    bot.add_cog(StatsCog(bot))
+    bot.add_cog(GroupCog(bot))

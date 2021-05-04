@@ -5,6 +5,7 @@ import time
 import lib.database as db
 import lib.checks
 import lib.resources
+import lib.getters
 
 config = lib.util.config
 
@@ -79,6 +80,53 @@ Catches Remaining: {catch_text}
 
 
 
+async def group_embed(ctx, group_db, group_monsters_db):
+
+    embed = discord.Embed(title=f'Group: #{group_db.id} {group_db.name}', description=group_db.description)
+
+    monster_db = db.Monster.get(group_monsters_db[0].monster_id)
+    first_monster = lib.resources.get_monster(monster_db.type)
+    
+    owner = db.User.get(group_db.owner_id)
+    user = lib.getters.get_user_by_id(owner.user_id, ctx.guild.members)
+
+    embeds = [embed]
+    
+    if len(group_monsters_db) > 0:
+        monsters = ['']
+        for group_monster_db in group_monsters_db:
+            monster_db = db.Monster.get(group_monster_db.monster_id)
+
+            text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+
+            if len(monsters[-1]) + len(text) > 1000:
+                monsters.append(text)
+            else:
+                monsters[-1] += text
+
+        for i, page in enumerate(monsters):
+            if len(embed.fields) > 3:
+                embed = discord.Embed(title=f'Continuation Monsters of {group_db.name}', description=f'page {len(embeds) + 1}')
+                embeds.append(embed)
+
+            if len(monsters) > 1:
+                embed.add_field(name=f'Monsters [{len(monsters)}] (Part #{i})', value=page, inline=False)
+            else:
+                embed.add_field(name=f'Monsters [{len(monsters)}]', value=page, inline=False)
+
+    for embed in embeds:
+        embed.set_thumbnail(url=first_monster['image'])
+        embed.set_author(name=str(user), icon_url=user.avatar_url)
+        embed.set_footer(text=f'Group {group_db.name} by {user}')
+
+    for e in embeds:
+        await ctx.message.channel.send(embed=e)
+
+
+def group_full_title(group_db, group_monsters_db):
+    return f'#{group_db.id} {group_db.name} [len(group_monsters_db) Monsters]'
+
+                                
 def monster_full_title(id, name, type, level, exhausted_timestamp):
     cr = lib.resources.get_monster(type)['visual_cr']
     stars = ''.join(['★' for i in range(level)])

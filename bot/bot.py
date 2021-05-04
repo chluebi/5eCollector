@@ -58,6 +58,7 @@ initial_extensions = [
     'bot.combat',
     'bot.manage',
     'bot.rolling',
+    'bot.stats'
 ]
 
 
