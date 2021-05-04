@@ -28,7 +28,7 @@ async def user_exists_check(ctx):
 async def group_exists(ctx, group_id):
     group_db = db.Group.get(group_id)
     if group_db is None:
-        await ctx.message.channel.send(f'Group with id ``{id}`` not found.')
+        await ctx.message.channel.send(f'Group with id ``{group_id}`` not found.')
         return False
     else:
         return True
@@ -37,7 +37,7 @@ async def group_exists(ctx, group_id):
 async def group_allowed(ctx, group_id):
     group_db = db.Group.get(group_id)
     if group_db is None:
-        await ctx.message.channel.send(f'Group with id ``{id}`` not found.')
+        await ctx.message.channel.send(f'Group with id ``{group_id}`` not found.')
         return False
     else:
         return True

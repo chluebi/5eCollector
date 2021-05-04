@@ -51,29 +51,46 @@ Catches Remaining: {catch_text}
             
         embed.add_field(name='Chosen', value=text)
 
+    
+
+    groups = []
+    groups_db = db.Group.get_by_owner(ctx.guild.id, user_db.id)
+
+    if len(groups_db) > 0:
+        for group_db in groups_db:
+            if not group_db.favorite:
+                continue
+            group_monsters_db = db.GroupMonster.get_by_group(group_db.id)
+            if len(group_monsters_db) < 1:
+                continue
+            groups.append([group_db, []])
+            for group_monster_db in group_monsters_db:
+                monster_db = db.Monster.get(group_monster_db.monster_id)
+                monster = lib.resources.get_monster(monster_db.type)
+
+                text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+
+                groups[-1][1].append(text)
+
+
+    fields = []
+    for group_db, monsters in groups:
+        title = f'Group: #{group_db.id} {group_db.name}'
+        fields.append([title, ''])
+        for monster in monsters:
+            if len(fields[-1][1]) + len(monster) > 1000:
+                fields.append([title, ''])
+
+            fields[-1][1] += monster
+
     embeds = [embed]
 
-    monsters = ['']
-    monsters_db = db.Monster.get_by_owner(ctx.guild.id, user_db.id)
-    monsters_db.sort(key=lambda x: x.id)
-    if len(monsters_db) > 0:
-        for monster_db in monsters_db:
-            #id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster
-            monster = lib.resources.get_monster(monster_db.type)
-
-            text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+    for name, value in fields:
+        title = f'Group: #{group_db.id} {group_db.name}'
+        if len(embed.fields) > 3:
+            embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
             
-            if len(monsters[-1]) + len(text) > 1000:
-                monsters.append(text)
-            else:
-                monsters[-1] += text
-
-        for i, page in enumerate(monsters):
-            if len(embed.fields) > 3:
-                embed = discord.Embed(title=f'Continuation Monsters of {user}', description=f'page {len(embeds) + 1}')
-                embeds.append(embed)
-
-            embed.add_field(name=f'Monsters (Grouping #{i})', value=page, inline=False)
+        embed.add_field(name=name, value=value, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
@@ -87,8 +104,9 @@ async def group_embed(ctx, group_db, group_monsters_db):
         title = f'Group: #{group_db.id} {group_db.name}'
     embed = discord.Embed(title=title, description=group_db.description)
 
-    monster_db = db.Monster.get(group_monsters_db[0].monster_id)
-    first_monster = lib.resources.get_monster(monster_db.type)
+    if len(group_monsters_db) > 0:
+        monster_db = db.Monster.get(group_monsters_db[0].monster_id)
+        first_monster = lib.resources.get_monster(monster_db.type)
     
     owner = db.User.get(group_db.owner_id)
     user = lib.getters.get_user_by_id(owner.user_id, ctx.guild.members)
@@ -118,7 +136,8 @@ async def group_embed(ctx, group_db, group_monsters_db):
                 embed.add_field(name=f'Monsters [{len(monsters)}]', value=page, inline=False)
 
     for embed in embeds:
-        embed.set_thumbnail(url=first_monster['image'])
+        if len(group_monsters_db) > 0:
+            embed.set_thumbnail(url=first_monster['image'])
         embed.set_author(name=str(user), icon_url=user.avatar_url)
         embed.set_footer(text=f'Group {group_db.name} by {user}')
 

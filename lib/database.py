@@ -397,6 +397,15 @@ class Group:
             return Group(row)
 
     @staticmethod
+    def get_by_owner(guild_id, owner_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM groups WHERE guild_id = %s AND owner_id = %s'''
+        cur.execute(command, (guild_id, owner_id))
+        rows = cur.fetchall()
+        cur.close()
+        return [Group(row) for row in rows]
+
+    @staticmethod
     def change_name(id, name):
         cur = conn.cursor()
         command = '''UPDATE groups
