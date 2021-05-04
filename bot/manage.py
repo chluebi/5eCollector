@@ -17,16 +17,24 @@ class UserCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def me(self, ctx):
+    async def me(self, ctx, action='view', sort='', reverse='+'):
         user = ctx.message.author
-        await lib.embeds.user_info(user, ctx)
+
+        if action == 'view':
+            await lib.embeds.user_info(user, ctx)
+        elif action == 'monsters':
+            await lib.embeds.user_monsters(ctx, user, sort, reverse)
 
     @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def userinfo(self, ctx, user_name):
+    async def userinfo(self, ctx, user_name, action='view', sort='', reverse='+'):
         user = lib.getters.get_user(user_name, ctx.guild.members)
-        await lib.embeds.user_info(user, ctx)
+        
+        if action == 'view':
+            await lib.embeds.user_info(user, ctx)
+        elif action == 'monsters':
+            await lib.embeds.user_monsters(ctx, user, sort, reverse)
 
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
@@ -35,6 +43,11 @@ class UserCog(commands.Cog):
         db.User.remove(ctx.message.author.id, ctx.guild.id)
         await ctx.message.channel.send('All your data on this server has been deleted')
 
+    @commands.group(name='monsters')
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def monsters_main_command(self, ctx):
+        pass
     
 class MonsterCog(commands.Cog):
     

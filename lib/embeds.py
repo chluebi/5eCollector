@@ -95,6 +95,80 @@ Catches Remaining: {catch_text}
     for e in embeds:
         await ctx.message.channel.send(embed=e)
 
+async def user_monsters(ctx, user, sort, reverse):
+    user_db = db.User.get_by_member(ctx.guild.id, user.id)
+
+    monsters = []
+    monsters_db = db.Monster.get_by_owner(ctx.guild.id, user_db.id)
+
+    title = f'Monsters of {str(user)} (sorted by {sort})'
+    reverse = False if reverse != '+' else True
+
+    if sort in ['id']:
+        monsters_db.sort(key=lambda x: x.id, reverse=reverse)
+    elif sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+        if sort in ['level']:
+            monsters_db.sort(key=lambda x: x.id, reverse=reverse)
+        elif sort in ['hp']:
+            def get_hp(monster_db):
+                monster = lib.resources.get_monster(monster_db.type)
+                hp = lib.util.get_hp(monster['hp'], monster_db.level)
+                return hp
+            monsters_db.sort(key=get_hp, reverse=reverse)
+        elif sort in ['ac']:
+            def get_ac(monster_db):
+                monster = lib.resources.get_monster(monster_db.type)
+                ac = lib.util.get_ac(monster['ac'], monster_db.level)
+                return ac
+            monsters_db.sort(key=get_ac, reverse=reverse)
+        else:
+            def get_stat(monster_db):
+                monster = lib.resources.get_monster(monster_db.type)
+                stat = lib.util.get_stat(monster, sort, monster_db.level)
+                return stat
+            monsters_db.sort(key=get_stat, reverse=reverse) 
+    else:
+        monsters_db.sort(key=lambda x: x.name, reverse=not reverse)
+        title = f'Monsters of {str(user)} (sorted alphabetically)'
+
+    for monster_db in monsters_db:
+        text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+        monsters.append(text)
+
+    fields = ['']
+    for monster in monsters:
+        if len(fields[-1]) + len(monster) > 1000:
+            fields.append('')
+        fields[-1] += monster
+
+    embed = discord.Embed(title=title)
+
+    
+    chosen = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
+    if chosen is not None:
+        monster = db.Monster.get(chosen.monster_id)
+
+        text = monster_full_title(monster.id, monster.name, monster.type, monster.level, monster.exhausted_timestamp)
+
+        glory = lib.util.get_glory(chosen.created_timestamp)
+
+        text += f' [Glory: {glory}] [HP: {chosen.hp}]'
+            
+        embed.add_field(name='Chosen', value=text)
+
+    embeds = [embed]
+
+    for i, field in enumerate(fields, 1):
+        if len(embed.fields) > 3:
+            embeds.append(discord.Embed(title=f'Monsters of {str(user)}', description=f'page {len(embeds) + 1}'))
+        embeds[-1].add_field(name=f'Section {i}', value=field, inline=False)
+
+    for embed in embeds:
+        embed.set_author(name=str(user), icon_url=user.avatar_url)
+        embed.set_footer(text=f'Monsters of {user}')
+
+    for e in embeds:
+        await ctx.message.channel.send(embed=e)
 
 
 async def group_embed(ctx, group_db, group_monsters_db):

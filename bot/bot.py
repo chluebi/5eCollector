@@ -53,6 +53,7 @@ async def on_command_error(ctx, error):
 async def help(ctx):
     await ctx.message.channel.send(f'Help can be found here: https://chluebi.github.io/5eCollector/')
 
+
 initial_extensions = [
     'bot.admin',
     'bot.combat',
