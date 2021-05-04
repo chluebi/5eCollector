@@ -69,7 +69,7 @@ class CheatCog(commands.Cog):
             await ctx.message.channel.send(f'User {user_name} not found')
             return
 
-        user_db = db.User.get_by_member(user.id, ctx.message.author.id)
+        user_db = db.User.get_by_member(ctx.guild.id, user.id)
 
         db.User.set_score(user_db.user_id, ctx.guild.id, user_db.score + amount)
         
