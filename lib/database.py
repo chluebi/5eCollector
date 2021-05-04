@@ -333,6 +333,107 @@ class Monster:
         cur.close()
 
 
+class Group:
+
+    def __init__(self, row):
+        pass
+
+    @staticmethod
+    def create_table():
+        commands = (
+        '''
+        CREATE TABLE groups (
+            id SERIAL UNIQUE NOT NULL,
+            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT,
+            description TEXT,
+            favorite BOOLEAN
+        )
+        ''',)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def delete_table():
+        commands = (
+        '''
+        DROP TABLE groups CASCADE;
+        '''
+        ,)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+
+class GroupMonster:
+
+    def __init__(self, row):
+        pass
+
+    @staticmethod
+    def create_table():
+        commands = (
+        '''
+        CREATE TABLE groupMonsters (
+            monster_id bigint REFERENCES monsters(id) ON DELETE CASCADE,
+            group_id bigint REFERENCES groups(id) ON DELETE CASCADE,
+            group_index int
+        )
+        ''',)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def delete_table():
+        commands = (
+        '''
+        DROP TABLE groupMonsters CASCADE;
+        '''
+        ,)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+
+
 class Chosen:
 
     def __init__(self, row):
