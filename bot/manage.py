@@ -129,6 +129,129 @@ class MonsterCog(commands.Cog):
 
         await ctx.message.channel.send(f'**{data[0].type} [{stars}]** were combined into **{data[0].type} [{stars}★]**')
 
+
+    @commands.command()
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def give(self, ctx, receiver, given_id: int):
+        receiver = lib.getters.get_user(receiver, ctx.guild.members)
+        if receiver is None:
+            await ctx.message.channel.send('User not found')
+            return
+        receiver_db = db.User.get_by_member(ctx.guild.id, receiver.id)
+        if receiver_db is None:
+            await ctx.message.channel.send('User not found')
+            return
+
+        given = db.Monster.get(given_id)
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+        if given is None:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+        if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+
+        title = 'Gift Offer'
+        description = f'{ctx.message.author} offers {lib.embeds.monster_full_title(given.id, given.name, given.type, given.level, given.exhausted_timestamp)}'
+        description += f' to {receiver.mention}'
+
+        embed = discord.Embed(title=title, description=description)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+
+        message = await ctx.message.channel.send(embed=embed)
+        await message.add_reaction('✔️')
+
+        def check(reaction, user):
+            return user.id == receiver_db.user_id and reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+            title = 'Gift Offer Declined'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+        else:
+            given = db.Monster.get(given_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if given is None:
+                title = f'Huh? The monster has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+                title = f'The monster has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
+            title = 'Gift Offer Accepted'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+
+            db.Monster.change_owner(given_id, receiver_db.id)
+
+
+    @commands.command()
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def release(self, ctx, given_id: int):
+
+        given = db.Monster.get(given_id)
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+        if given is None:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+        if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+
+        title = 'Released Monster'
+        description = f'{ctx.message.author} has released {lib.embeds.monster_full_title(given.id, given.name, given.type, given.level, given.exhausted_timestamp)}'
+        description += f'\n React to this message to capture it for yourself.'
+
+        embed = discord.Embed(title=title, description=description)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+
+        message = await ctx.message.channel.send(embed=embed)
+        await message.add_reaction('✔️')
+
+        def check(reaction, user):
+            return reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+            title = 'Monster has escaped'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+
+            db.Monster.remove(given_id)
+        else:
+            given = db.Monster.get(given_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if given is None:
+                title = f'Huh? The monster has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+                title = f'The monster has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
+            user_db = db.User.get_by_member(ctx.guild.id, user.id)
+
+            title = f'Monster has been captured by {user.mention}'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+
+            db.Monster.change_owner(given_id, user_db.id)
+
+
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
@@ -176,19 +299,44 @@ class MonsterCog(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.message.remove_reaction('✔️', ctx.me)
             title = 'Trade Offer Declined'
-            embed = discord.Embed(title=title, url=message.jump_url)
-            await ctx.message.channel.send(embed=embed)
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
         else:
+            given = db.Monster.get(given_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if given is None:
+                title = f'Huh? The monster ``{given.id}`` has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+                title = f'The monster  ``{given.id}`` has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
+            taken = db.Monster.get(taken_id)
+            owner_id = db.User.get(taken.owner_id).id
+            if taken is None:
+                title = f'Huh? The monster ``{taken.id}`` has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if taken.guild_id != ctx.guild.id or taken.owner_id != owner_id:
+                title = f'The monster  ``{taken.id}`` has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
             title = 'Trade Offer Accepted'
-            embed = discord.Embed(title=title, url=message.jump_url)
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
 
             owner_id = db.User.get_by_member(ctx.guild.id, owner.id).id
             db.Monster.change_owner(given_id, owner_id)
 
             owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
             db.Monster.change_owner(taken_id, owner_id)
-
-            await ctx.message.channel.send(embed=embed)
 
 class StatsCog(commands.Cog):
     
