@@ -451,6 +451,27 @@ class GroupCog(commands.Cog):
 
         await ctx.message.channel.send('Description successfully changed.')
 
+    @change.command()
+    async def favorite(self, ctx, id: int):
+
+        if not await lib.checks.group_allowed(ctx, id):
+            return
+
+        group_db = db.Group.get(id)
+
+        if group_db.favorite:
+            favorite = True
+        else:
+            favorite = False
+
+        favorite = not favorite
+
+        db.Group.change_favorite(id, favorite)
+
+        if favorite:
+            await ctx.message.channel.send('Group has been favorited.')
+        else:
+            await ctx.message.channel.send('Group has been unfavorited.')
 
     @group_main_command.command()
     async def create(self, ctx, name, description=''):

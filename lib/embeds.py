@@ -81,8 +81,11 @@ Catches Remaining: {catch_text}
 
 
 async def group_embed(ctx, group_db, group_monsters_db):
-
-    embed = discord.Embed(title=f'Group: #{group_db.id} {group_db.name}', description=group_db.description)
+    if group_db.favorite:
+        title = f'Group: #{group_db.id} {group_db.name} [Favorite]' 
+    else:
+        title = f'Group: #{group_db.id} {group_db.name}'
+    embed = discord.Embed(title=title, description=group_db.description)
 
     monster_db = db.Monster.get(group_monsters_db[0].monster_id)
     first_monster = lib.resources.get_monster(monster_db.type)
@@ -124,7 +127,10 @@ async def group_embed(ctx, group_db, group_monsters_db):
 
 
 def group_full_title(group_db, group_monsters_db):
-    return f'#{group_db.id} {group_db.name} [len(group_monsters_db) Monsters]'
+    if group_db.favorite == 't':
+        return f'#{group_db.id} **{group_db.name}** [len(group_monsters_db) Monsters] [Favorite]'
+    else:
+        return f'#{group_db.id} **{group_db.name}** [len(group_monsters_db) Monsters]'
 
                                 
 def monster_full_title(id, name, type, level, exhausted_timestamp):

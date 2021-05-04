@@ -417,6 +417,21 @@ class Group:
         cur.close()
 
     @staticmethod
+    def change_favorite(id, favorite):
+        if favorite:
+            favorite = 't'
+        else:
+            favorite = 'f'
+        cur = conn.cursor()
+        command = '''UPDATE groups
+                    SET favorite = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (favorite, id))
+        conn.commit()
+        cur.close()
+
+
+    @staticmethod
     def create(guild_id, owner_id, name, description, favorite=True):
         if favorite:
             favorite = 't'
