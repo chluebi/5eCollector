@@ -279,6 +279,15 @@ class Monster:
         return [Monster(row) for row in rows]
 
     @staticmethod
+    def get_by_guild(guild_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM monsters WHERE guild_id = %s'''
+        cur.execute(command, (guild_id, ))
+        rows = cur.fetchall()
+        cur.close()
+        return [Monster(row) for row in rows]
+
+    @staticmethod
     def rename(id, name):
         cur = conn.cursor()
         command = '''UPDATE monsters

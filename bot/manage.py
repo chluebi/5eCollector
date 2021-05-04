@@ -14,14 +14,14 @@ class UserCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['m'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def me(self, ctx):
         user = ctx.message.author
         await lib.embeds.user_info(user, ctx)
 
-    @commands.command(aliases=['u', 'user'])
+    @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def userinfo(self, ctx, user_name):
@@ -129,7 +129,130 @@ class MonsterCog(commands.Cog):
 
         await ctx.message.channel.send(f'**{data[0].type} [{stars}]** were combined into **{data[0].type} [{stars}★]**')
 
-    @commands.command(aliases=['t', 'exchange'])
+
+    @commands.command()
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def give(self, ctx, receiver, given_id: int):
+        receiver = lib.getters.get_user(receiver, ctx.guild.members)
+        if receiver is None:
+            await ctx.message.channel.send('User not found')
+            return
+        receiver_db = db.User.get_by_member(ctx.guild.id, receiver.id)
+        if receiver_db is None:
+            await ctx.message.channel.send('User not found')
+            return
+
+        given = db.Monster.get(given_id)
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+        if given is None:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+        if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+
+        title = 'Gift Offer'
+        description = f'{ctx.message.author} offers {lib.embeds.monster_full_title(given.id, given.name, given.type, given.level, given.exhausted_timestamp)}'
+        description += f' to {receiver.mention}'
+
+        embed = discord.Embed(title=title, description=description)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+
+        message = await ctx.message.channel.send(embed=embed)
+        await message.add_reaction('✔️')
+
+        def check(reaction, user):
+            return user.id == receiver_db.user_id and reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+            title = 'Gift Offer Declined'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+        else:
+            given = db.Monster.get(given_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if given is None:
+                title = f'Huh? The monster has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+                title = f'The monster has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
+            title = 'Gift Offer Accepted'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+
+            db.Monster.change_owner(given_id, receiver_db.id)
+
+
+    @commands.command()
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def release(self, ctx, given_id: int):
+
+        given = db.Monster.get(given_id)
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+        if given is None:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+        if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+            await ctx.message.channel.send(f'Monster with id {given_id} not found in your collection')
+            return
+
+        title = 'Released Monster'
+        description = f'{ctx.message.author} has released {lib.embeds.monster_full_title(given.id, given.name, given.type, given.level, given.exhausted_timestamp)}'
+        description += f'\n React to this message to capture it for yourself.'
+
+        embed = discord.Embed(title=title, description=description)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+
+        message = await ctx.message.channel.send(embed=embed)
+        await message.add_reaction('✔️')
+
+        def check(reaction, user):
+            return reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+            title = 'Monster has escaped'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+
+            db.Monster.remove(given_id)
+        else:
+            given = db.Monster.get(given_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if given is None:
+                title = f'Huh? The monster has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+                title = f'The monster has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
+            user_db = db.User.get_by_member(ctx.guild.id, user.id)
+
+            title = f'Monster has been captured by {user.mention}'
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
+
+            db.Monster.change_owner(given_id, user_db.id)
+
+
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def trade(self, ctx, given_id: int, taken_id: int):
@@ -176,11 +299,38 @@ class MonsterCog(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.message.remove_reaction('✔️', ctx.me)
             title = 'Trade Offer Declined'
-            embed = discord.Embed(title=title, url=message.jump_url)
-            await ctx.message.channel.send(embed=embed)
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
         else:
+            given = db.Monster.get(given_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if given is None:
+                title = f'Huh? The monster ``{given.id}`` has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if given.guild_id != ctx.guild.id or given.owner_id != user_id:
+                title = f'The monster  ``{given.id}`` has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
+            taken = db.Monster.get(taken_id)
+            owner_id = db.User.get(taken.owner_id).id
+            if taken is None:
+                title = f'Huh? The monster ``{taken.id}`` has disappeared! The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+            if taken.guild_id != ctx.guild.id or taken.owner_id != owner_id:
+                title = f'The monster  ``{taken.id}`` has meanwhile changed owners. The Exchange is cancelled.'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+
             title = 'Trade Offer Accepted'
-            embed = discord.Embed(title=title, url=message.jump_url)
+            embed.set_footer(text=title)
+            await message.edit(embed=embed)
 
             owner_id = db.User.get_by_member(ctx.guild.id, owner.id).id
             db.Monster.change_owner(given_id, owner_id)
@@ -188,22 +338,20 @@ class MonsterCog(commands.Cog):
             owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
             db.Monster.change_owner(taken_id, owner_id)
 
-            await ctx.message.channel.send(embed=embed)
-
 class StatsCog(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['stat', 'ranking'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def stats(self, ctx, category):
+    async def stats(self, ctx, category, start=1, l=10, order='+'):
 
         ranking = []
         ranking_title = ''
 
-        if category == 'points':
+        if category in ['points']:
 
             ranking_title = '**Ranking by Points**'
             rows = db.User.get_by_guild(ctx.guild.id)
@@ -214,7 +362,7 @@ class StatsCog(commands.Cog):
                 if user is not None:
                     ranking.append((user_db.score, f'{user} ({user_db.score})'))
 
-        elif category == 'glory':
+        elif category in ['glory']:
             ranking_title = '**Ranking by Glory**'
             rows = db.Chosen.get_by_guild(ctx.guild.id)
 
@@ -229,11 +377,12 @@ class StatsCog(commands.Cog):
 
                 glory = lib.util.get_glory(chosen_db.created_timestamp)
 
-                text += f' [Glory: {glory}] [HP: {chosen_db.hp}]'
+                text += f' **[Glory: {glory}]** [HP: {chosen_db.hp}]'
                 text = f'{user}\'s ' + text
 
                 ranking.append((glory, text))
-        elif category == 'monster':
+
+        elif category in ['monster', 'monsters']:
             ranking_title = '**Ranking by Monsters**'
             rows = db.User.get_by_guild(ctx.guild.id)
 
@@ -242,22 +391,79 @@ class StatsCog(commands.Cog):
                 monster_rows = db.Monster.get_by_owner(user_db.guild_id, user_db.id)
                 user = ctx.guild.get_member(user_db.user_id)
                 ranking.append((len(monster_rows), f'{user} ({len(monster_rows)})'))
+
+        elif category in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+            ranking_title = f'**Ranking by {category.capitalize()}**'
+            monsters = db.Monster.get_by_guild(ctx.guild.id)
+
+            if category in ['level']:
+                for monster_db in monsters:
+    
+                    user_db = db.User.get(monster_db.owner_id)
+                    user = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
+
+                    text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
+                    
+                    text += f' **[Level: {monster_db.level}]**'
+                    text = f'{user}\'s ' + text
+
+                    ranking.append((monster_db.level, text))
+            else:
+                
+                for monster_db in monsters:
+                    monster = lib.resources.get_monster(monster_db.type)
+
+                    user_db = db.User.get(monster_db.owner_id)
+                    user = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
+
+                    text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
+                    
+                    if category in ['hp']:
+                        stat = lib.util.get_hp(monster['hp'], monster_db.level)
+                    elif category in ['ac']:
+                        stat = lib.util.get_ac(monster['ac'], monster_db.level)
+                    elif category in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
+                        stat = lib.util.get_stat(monster, category, monster_db.level)
+
+                    text += f' **[{category.capitalize()}: {stat}]**'
+                    text = f'{user}\'s ' + text
+
+                    ranking.append((stat, text))
         else:
             return
 
         ranking = sorted(ranking, key=lambda x: x[0], reverse=True)
+        leaderboard = list(enumerate(ranking, 1))
+
+        l = min(l, 100)
+        start = start - 1
+        total = len(leaderboard)
+        end = min(l, len(leaderboard[::-1][start:]))
+
+        end = start + end
+        
+        if order in ['-']:
+            leaderboard = leaderboard[::-1]
+
+        leaderboard = leaderboard[start:end]
+        if order in ['-']:
+            end, start = start+1, end-1
+        
+        ranking_subtitle = f'From #{leaderboard[0][0]} to #{leaderboard[-1][0]} [Total: {total}]'
 
         message = ['']
-        for i, (_, rank) in enumerate(ranking, 1):
+
+        for i, (_, rank) in leaderboard:
             if len(message[-1]) + len(rank) > 1800:
-                message.append(rank)
+                message.append(f'**#{i}** ' + rank + '\n')
             else:
-                message[-1] += f'#{i} ' + rank + '\n'
+                message[-1] += f'**#{i}** ' + rank + '\n'
 
 
-        message = [f'```{m}```' for m in message]
+        message = [f'{m}' for m in message]
 
-        message[-1] = f'{ranking_title}\n' + message[-1]
+
+        message[0] =  f'{ranking_title}\n' + f'{ranking_subtitle}\n' + message[0]
 
         for m in message:
             await ctx.message.channel.send(m)

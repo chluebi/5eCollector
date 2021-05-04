@@ -15,10 +15,10 @@ class RollCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['ex', 'roll'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def explore(self, ctx):
+    async def roll(self, ctx):
         #id, user_id, _, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
         user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
 
