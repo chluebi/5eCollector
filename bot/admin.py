@@ -43,7 +43,7 @@ class CheatCog(commands.Cog):
     @commands.has_permissions(administrator = True)
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def give(self, ctx, user_name, monster_name, amount: int):
+    async def add_monster(self, ctx, user_name, monster_name, amount=1):
         user = lib.getters.get_user(user_name, ctx.guild.members)
         
         if user is None or not await lib.checks.user_exists(user.id, ctx.guild.id):

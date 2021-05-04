@@ -14,14 +14,14 @@ class UserCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['m'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def me(self, ctx):
         user = ctx.message.author
         await lib.embeds.user_info(user, ctx)
 
-    @commands.command(aliases=['u', 'user'])
+    @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def userinfo(self, ctx, user_name):
@@ -129,7 +129,7 @@ class MonsterCog(commands.Cog):
 
         await ctx.message.channel.send(f'**{data[0].type} [{stars}]** were combined into **{data[0].type} [{stars}★]**')
 
-    @commands.command(aliases=['t', 'exchange'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def trade(self, ctx, given_id: int, taken_id: int):
@@ -195,7 +195,7 @@ class StatsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['stat', 'ranking'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def stats(self, ctx, category):

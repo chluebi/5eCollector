@@ -16,7 +16,7 @@ class ChosenCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['choose', 'chose'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def chosen(self, ctx, monster_id: int):
@@ -68,7 +68,7 @@ class CombatCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['raid', 'a'])
+    @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def attack(self, ctx, target, monster_id, stat):
