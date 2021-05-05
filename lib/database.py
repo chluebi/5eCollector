@@ -333,6 +333,239 @@ class Monster:
         cur.close()
 
 
+class Group:
+
+    def __init__(self, row):
+        self.id, self.guild_id, self.owner_id, self.name, self.description, self.favorite = row
+
+    @staticmethod
+    def create_table():
+        commands = (
+        '''
+        CREATE TABLE groups (
+            id SERIAL UNIQUE NOT NULL,
+            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
+            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT,
+            description TEXT,
+            favorite BOOLEAN
+        )
+        ''',)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def delete_table():
+        commands = (
+        '''
+        DROP TABLE groups CASCADE;
+        '''
+        ,)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def get(id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM groups WHERE id = %s'''
+        cur.execute(command, (id,))
+        row = cur.fetchone()
+        cur.close()
+        if row is None:
+            return None
+        else:
+            return Group(row)
+
+    @staticmethod
+    def get_by_owner(guild_id, owner_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM groups WHERE guild_id = %s AND owner_id = %s'''
+        cur.execute(command, (guild_id, owner_id))
+        rows = cur.fetchall()
+        cur.close()
+        return [Group(row) for row in rows]
+
+    @staticmethod
+    def change_name(id, name):
+        cur = conn.cursor()
+        command = '''UPDATE groups
+                    SET name = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (name, id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def change_description(id, description):
+        cur = conn.cursor()
+        command = '''UPDATE groups
+                    SET description = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (description, id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def change_favorite(id, favorite):
+        if favorite:
+            favorite = 't'
+        else:
+            favorite = 'f'
+        cur = conn.cursor()
+        command = '''UPDATE groups
+                    SET favorite = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (favorite, id))
+        conn.commit()
+        cur.close()
+
+
+    @staticmethod
+    def create(guild_id, owner_id, name, description, favorite=True):
+        if favorite:
+            favorite = 't'
+        else:
+            favorite = 'f'
+
+        cur = conn.cursor()
+        command = '''INSERT INTO groups(guild_id, owner_id, name, description, favorite) VALUES (%s, %s, %s, %s, %s);'''
+        cur.execute(command, (guild_id, owner_id, name, description, favorite))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def remove(id):
+        cur = conn.cursor()
+        command = '''DELETE FROM groups WHERE id = %s'''
+        cur.execute(command, (id,))
+        cur.close()
+        
+
+
+class GroupMonster:
+
+    def __init__(self, row):
+        self.monster_id, self.group_id, self.group_index = row
+
+    @staticmethod
+    def create_table():
+        commands = (
+        '''
+        CREATE TABLE groupMonsters (
+            monster_id bigint REFERENCES monsters(id) ON DELETE CASCADE,
+            group_id bigint REFERENCES groups(id) ON DELETE CASCADE,
+            group_index int
+        )
+        ''',)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def delete_table():
+        commands = (
+        '''
+        DROP TABLE groupMonsters CASCADE;
+        '''
+        ,)
+
+        cur = conn.cursor()
+
+        for c in commands:
+            try:    
+                cur.execute(c)
+            except Exception as e:
+                print('could not execute command', c)
+                raise e
+
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def get(monster_id, group_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM groupMonsters WHERE monster_id = %s AND group_id = %s'''
+        cur.execute(command, (monster_id, group_id))
+        row = cur.fetchone()
+        cur.close()
+        if row is None:
+            return None
+        else:
+            return GroupMonster(row)
+        
+    @staticmethod
+    def get_by_monster(monster_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM groupMonsters WHERE monster_id = %s'''
+        cur.execute(command, (monster_id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [GroupMonster(row) for row in rows]
+
+    @staticmethod
+    def get_by_group(group_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM groupMonsters WHERE group_id = %s'''
+        cur.execute(command, (group_id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [GroupMonster(row) for row in rows]
+
+    @staticmethod
+    def create(monster_id, group_id, group_index):
+        cur = conn.cursor()
+        command = '''INSERT INTO groupMonsters(monster_id, group_id, group_index) VALUES (%s, %s, %s);'''
+        cur.execute(command, (monster_id, group_id, group_index))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def change_index(monster_id, group_id, new_index):
+        cur = conn.cursor()
+        command = '''UPDATE groupMonsters
+                    SET group_index = %s
+                    WHERE monster_id = %s AND group_id = %s;'''
+        cur.execute(command, (new_index, monster_id, group_id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def remove(monster_id, group_id):
+        cur = conn.cursor()
+        command = '''DELETE FROM groupMonsters WHERE monster_id = %s AND group_id = %s;'''
+        cur.execute(command, (monster_id, group_id))
+        cur.close()
+
+
 class Chosen:
 
     def __init__(self, row):
