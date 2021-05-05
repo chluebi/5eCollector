@@ -17,24 +17,32 @@ class UserCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def me(self, ctx, action='view', sort='', reverse='+'):
+    async def me(self, ctx, action='view', *options):
         user = ctx.message.author
 
-        if action == 'view':
-            await lib.embeds.user_info(user, ctx)
-        elif action == 'monsters':
-            await lib.embeds.user_monsters(ctx, user, sort, reverse)
+        if action in ['monsters', 'monster']:
+            await lib.embeds.user_monsters(ctx, user, options)
+            return
+        elif action in ['groups', 'group']:
+            await lib.embeds.user_groups(ctx, user, options)
+            return
+
+        await lib.embeds.user_info(user, ctx)
 
     @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def userinfo(self, ctx, user_name, action='view', sort='', reverse='+'):
+    async def userinfo(self, ctx, user_name, action='view', *options):
         user = lib.getters.get_user(user_name, ctx.guild.members)
         
-        if action == 'view':
-            await lib.embeds.user_info(user, ctx)
-        elif action == 'monsters':
-            await lib.embeds.user_monsters(ctx, user, sort, reverse)
+        if action in ['monsters', 'monster']:
+            await lib.embeds.user_monsters(ctx, user, options)
+            return
+        elif action in ['groups', 'group']:
+            await lib.embeds.user_groups(ctx, user, options)
+            return
+
+        await lib.embeds.user_info(user, ctx)
 
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)

@@ -61,8 +61,6 @@ Catches Remaining: {catch_text}
             if not group_db.favorite:
                 continue
             group_monsters_db = db.GroupMonster.get_by_group(group_db.id)
-            if len(group_monsters_db) < 1:
-                continue
             groups.append([group_db, []])
             for group_monster_db in group_monsters_db:
                 monster_db = db.Monster.get(group_monster_db.monster_id)
@@ -89,23 +87,32 @@ Catches Remaining: {catch_text}
         title = f'Group: #{group_db.id} {group_db.name}'
         if len(embed.fields) > 3:
             embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
-            
+        if len(value) < 1:
+            value = '[empty]'
+
         embed.add_field(name=name, value=value, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
 
-async def user_monsters(ctx, user, sort, reverse):
+async def user_monsters(ctx, user, options):
     user_db = db.User.get_by_member(ctx.guild.id, user.id)
 
     monsters = []
     monsters_db = db.Monster.get_by_owner(ctx.guild.id, user_db.id)
 
+    sort = ''
+    for o in options:
+        if o.startswith('sort:') or o.startswith('s'):
+            o_list = o.split(':')
+            sort = ':'.join(o_list[1:])
+            break
+
     title = f'Monsters of {str(user)} (sorted by {sort})'
-    reverse = False if reverse != '+' else True
+    reverse = False if '-' in options else True
 
     if sort in ['id']:
-        monsters_db.sort(key=lambda x: x.id, reverse=reverse)
+        monsters_db.sort(key=lambda x: x.id, reverse=not reverse)
     elif sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
         if sort in ['level']:
             monsters_db.sort(key=lambda x: x.id, reverse=reverse)
@@ -131,9 +138,21 @@ async def user_monsters(ctx, user, sort, reverse):
         monsters_db.sort(key=lambda x: x.name, reverse=not reverse)
         title = f'Monsters of {str(user)} (sorted alphabetically)'
 
+    filters = []
+    for o in options:
+        if o.startswith('filter:') or o.startswith('f'):
+            o_list = o.split(':')
+            if len(o_list) > 1:
+                filters.append(':'.join(o_list[1:]))
+
     for monster_db in monsters_db:
         text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
-        monsters.append(text)
+        filtered = True
+        for f in filters:
+            filtered = True and f in text
+
+        if filtered:
+            monsters.append(text)
 
     fields = ['']
     for monster in monsters:
@@ -161,6 +180,10 @@ async def user_monsters(ctx, user, sort, reverse):
     for i, field in enumerate(fields, 1):
         if len(embed.fields) > 3:
             embeds.append(discord.Embed(title=f'Monsters of {str(user)}', description=f'page {len(embeds) + 1}'))
+
+        if len(field) < 1:
+            field = '[empty]'
+
         embeds[-1].add_field(name=f'Section {i}', value=field, inline=False)
 
     for embed in embeds:
@@ -169,6 +192,121 @@ async def user_monsters(ctx, user, sort, reverse):
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
+
+
+async def user_groups(ctx, user, options):
+    user_db = db.User.get_by_member(ctx.guild.id, user.id)
+    groups_db = db.Group.get_by_owner(ctx.guild.id, user_db.id)
+
+    sort = ''
+    for o in options:
+        if o.startswith('sort:') or o.startswith('s'):
+            o_list = o.split(':')
+            sort = ':'.join(o_list[1:])
+            break
+
+    title = f'Groups of {str(user)} (sorted by {sort})'
+    reverse = False if '-' in options else True
+
+    
+    if sort in ['id']:
+        groups_db.sort(key=lambda x: x.id, reverse=not reverse)
+    elif sort in ['monsters']:
+        def group_len(g):
+            group_monsters_db = db.GroupMonster.get_by_group(g.id)
+            return len(group_monsters_db)
+        groups_db.sort(key=group_len, reverse=reverse)
+    else:
+        groups_db.sort(key=lambda x: x.name, reverse=not reverse)
+        title = f'Groups of {str(user)} (sorted alphabetically)'
+
+    expand = 'expand' in options or 'ex' in options
+    filters = []
+    for o in options:
+        if o.startswith('filter:') or o.startswith('f'):
+            o_list = o.split(':')
+            if len(o_list) > 1:
+                filters.append(':'.join(o_list[1:]))
+
+    if len(groups_db) < 1:
+        await ctx.message.channel.send('You have not created any groups yet.')
+        return
+
+    embed = discord.Embed(title=title, description=f'page 1')
+
+    if expand:
+        groups = []
+
+        if len(groups_db) > 0:
+            for group_db in groups_db:
+                group_monsters_db = db.GroupMonster.get_by_group(group_db.id)
+                groups.append([group_db, []])
+                for group_monster_db in group_monsters_db:
+                    monster_db = db.Monster.get(group_monster_db.monster_id)
+                    monster = lib.resources.get_monster(monster_db.type)
+
+                    text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+
+                    groups[-1][1].append(text)
+
+
+        fields = []
+        for group_db, monsters in groups:
+            title = f'Group: #{group_db.id} {group_db.name}'
+            fields.append([title, ''])
+            for monster in monsters:
+                if len(fields[-1][1]) + len(monster) > 1000:
+                    fields.append([title, ''])
+
+                fields[-1][1] += monster
+
+        embeds = [embed]
+    else:
+        groups = []
+        for group_db in groups_db:
+            group_monsters_db = db.GroupMonster.get_by_group(group_db.id)
+            groups.append([group_db, ''])
+
+            exhausted = 0
+            total = 0
+            for group_monster_db in group_monsters_db:
+                monster_db = db.Monster.get(group_monster_db.monster_id)
+                monster = lib.resources.get_monster(monster_db.type)
+
+                total += 1
+                if monster_db.exhausted_timestamp > time.time():
+                    exhausted += 1
+
+            if exhausted < 1:
+                groups[-1][1] = f'{total} Monsters'
+            else:
+                groups[-1][1] = f'{exhausted}/{total} Monsters Exhausted 😴'
+        
+        fields = []
+        for group_db, monsters in groups:
+            title = f'Group: #{group_db.id} {group_db.name}'
+
+            filtered = True
+            for f in filters:
+                filtered = True and (f in title or f in monsters)
+
+            if filtered:
+                value = monsters
+                fields.append((title, value))
+
+        embeds = [embed]
+
+    for name, value in fields:
+        if len(embed) > 5000:
+            embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
+        
+        if len(value) < 1:
+            value = '[empty]'
+        embed.add_field(name=name, value=value, inline=False)
+
+    for e in embeds:
+        await ctx.message.channel.send(embed=e)
+
 
 
 async def group_embed(ctx, group_db, group_monsters_db):
@@ -186,6 +324,8 @@ async def group_embed(ctx, group_db, group_monsters_db):
     user = lib.getters.get_user_by_id(owner.user_id, ctx.guild.members)
 
     embeds = [embed]
+
+    group_monsters_db.sort(key=lambda x: x.group_index)
     
     if len(group_monsters_db) > 0:
         monsters = ['']
