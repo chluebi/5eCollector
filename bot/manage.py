@@ -73,6 +73,9 @@ class MonsterCog(commands.Cog):
             if monster_db is None:
                 await ctx.message.channel.send(f'Monster with id {monster_id} not found')
                 return
+            if monster_db.guild_id != ctx.guild.id:
+                await ctx.message.channel.send(f'Monster with id {monster_id} not found on this guild')
+                return
             #id, name, type, level, exhausted_timestamp, guild_id, owner_id = row
             monster = lib.resources.get_monster(monster_db.type)
 
