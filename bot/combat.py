@@ -71,7 +71,7 @@ class CombatCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def attack(self, ctx, target, monster_id, stat):
+    async def attack(self, ctx, target, group_id, stat):
 
         target = lib.getters.get_user(target, ctx.guild.members)
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
@@ -135,74 +135,45 @@ class CombatCog(commands.Cog):
             await ctx.message.channel.send(f'User does not have a Chosen at the moment')
             return
 
-        if monster_id == 'all':
-            attackers = []
-            rows = db.Monster.get_by_owner(ctx.guild.id, user_id)
-            for monster_db in rows:
-                #id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster
-                if time.time() < monster_db.exhausted_timestamp:
-                    continue
-                
-                attackers.append(monster_db.id)
+        if group_id == 'all':
+            await ctx.message.channel.send('You cannot attack with all monsters, you may only attack with groups of only up to 10 monsters.')
+            return
 
-            if len(attackers) < 1:
-                await ctx.message.channel.send('All of your monsters are exhausted at the moment.')
-                return
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
 
-            damage = 0
-            messages = []
-            for monster_id in attackers:
-                monster_id = int(monster_id)
-                attacker_db = db.Monster.get(monster_id)
+        if len(group_monsters_db) < 1:
+            await ctx.message.channel.send(f'No monsters in group with group-id ``{group_id}`` found.')
+            return
 
-                if attacker_db is None:
-                    await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
-                    return
+        if len(group_monsters_db) > 10:
+            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
+            return
 
-                #id, name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
-                if attacker_db.guild_id != ctx.guild.id or attacker_db.owner_id != user_id:
-                    await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
-                    return
+        monsters_db = []
+        for group_monster_db in group_monsters_db:
+            monsters_db.append(db.Monster.get(group_monster_db.monster_id))
 
-                if time.time() < attacker_db.exhausted_timestamp:
-                    delta = attacker_db.exhausted_timestamp - time.time()
-                    await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
-                    return
+        attackers = []
+        for monster_db in monsters_db:
+            if time.time() < monster_db.exhausted_timestamp:
+                continue
+            
+            attackers.append(monster_db.id)
 
-                messages.append('')
-                m, d = attack_monster(boss_db, attacker_db)
-                messages += m
-                damage += d
+        if len(attackers) < 1:
+            await ctx.message.channel.send('All of the monsters in this group are exhausted at the moment.')
+            return
 
-            boss_monster_db = db.Monster.get(boss_db.monster_id)
-
-            messages.append(f'{boss_monster_db.name} takes a total of {damage} damage.')
-            if boss_db.hp - (damage) < 1:
-                db.Chosen.remove(boss_db.id)
-                db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
-
-                glory = lib.util.get_glory(boss_db.created_timestamp)
-                messages.append(f'**{boss_monster_db.name}** has been defeated with {glory} glory.')
-            else:
-                db.Chosen.damage(boss_db.id, boss_db.hp - damage)
-
-
-            formatted_message = ['']
-            for m in messages:
-                if len(formatted_message[-1]) + len(m) > 1800:
-                    formatted_message.append(m)
-                else:
-                    formatted_message[-1] += m + '\n'
-
-            for m in formatted_message:
-                await ctx.message.channel.send(m)
-        else:
+        damage = 0
+        messages = []
+        for monster_id in attackers:
             monster_id = int(monster_id)
             attacker_db = db.Monster.get(monster_id)
 
             if attacker_db is None:
                 await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
                 return
+
             #id, name, type, level, exhausted_timestamp, guild_id, owner_id = attacker_row
             if attacker_db.guild_id != ctx.guild.id or attacker_db.owner_id != user_id:
                 await ctx.message.channel.send(f'Monster with id *{monster_id}* not found in your collection')
@@ -213,9 +184,51 @@ class CombatCog(commands.Cog):
                 await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
                 return
 
-            messages, damage = attack_monster(boss_db, attacker_db)
+            messages.append('')
+            m, d = attack_monster(boss_db, attacker_db)
+            messages += m
+            damage += d
 
-            await send_message()
+        boss_monster_db = db.Monster.get(boss_db.monster_id)
+
+        damage_msg = f'{boss_monster_db.name} takes a total of {damage} damage.'
+        messages.append(damage_msg)
+        if boss_db.hp - (damage) < 1:
+            db.Chosen.remove(boss_db.id)
+            db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+
+            glory = lib.util.get_glory(boss_db.created_timestamp)
+            defeated_msg = f'\n **{boss_monster_db.name}** has been defeated with {glory} glory.'
+            messages.append(defeated_msg)
+        else:
+            defeated_msg = ''
+            db.Chosen.damage(boss_db.id, boss_db.hp - damage)
+
+        summary_msg = f'{damage_msg}{defeated_msg}\n\nReact to this message if you want to see the entire summary of the Battle.'
+        summary_message = await ctx.message.channel.send(summary_msg)
+
+        await summary_message.add_reaction('✔️')
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == summary_message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+        else:
+            formatted_message = ['']
+            for m in messages:
+                if len(formatted_message[-1]) + len(m) > 1800:
+                    formatted_message.append(m)
+                else:
+                    formatted_message[-1] += m + '\n'
+
+            messages = []
+            for m in formatted_message:
+                messages.append(await ctx.message.channel.send(m))
+
+            summary_msg += '\n Full Summary: {messages[0].jump_url}'
+            await summary_message.edit(content=summary_msg)
 
 def setup(bot):
     bot.add_cog(ChosenCog(bot))
