@@ -32,8 +32,7 @@ class UserCog(commands.Cog):
     @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def userinfo(self, ctx, user_name, action='view', *options):
-        user = lib.getters.get_user(user_name, ctx.guild.members)
+    async def userinfo(self, ctx, user: discord.ext.commands.MemberConverter, action='view', *options):
         
         if action in ['monsters', 'monster']:
             await lib.embeds.user_monsters(ctx, user, options)
@@ -157,8 +156,7 @@ class MonsterCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def give(self, ctx, receiver, given_id: int):
-        receiver = lib.getters.get_user(receiver, ctx.guild.members)
+    async def give(self, ctx, receiver: discord.ext.commands.MemberConverter, given_id: int):
         if receiver is None:
             await ctx.message.channel.send('User not found')
             return
