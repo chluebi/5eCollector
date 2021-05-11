@@ -240,7 +240,7 @@ class MonsterCog(commands.Cog):
         await message.add_reaction('✔️')
 
         def check(reaction, user):
-            return reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+            return reaction.message.id == message.id and str(reaction.emoji) == '✔️' and not user.bot
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
@@ -267,7 +267,7 @@ class MonsterCog(commands.Cog):
 
             user_db = db.User.get_by_member(ctx.guild.id, user.id)
 
-            title = f'Monster has been captured by {user.mention}'
+            title = f'Monster has been captured by {user}'
             embed.set_footer(text=title)
             await message.edit(embed=embed)
 
