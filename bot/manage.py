@@ -153,7 +153,7 @@ class MonsterCog(commands.Cog):
         await ctx.message.channel.send(f'**{data[0].type} [{stars}]** were combined into **{data[0].type} [{stars}★]**')
 
 
-    @commands.command()
+    @commands.command(aliases=['gift'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def give(self, ctx, receiver: discord.ext.commands.MemberConverter, given_id: int):
