@@ -97,7 +97,7 @@ class MonsterCog(commands.Cog):
     @commands.check(lib.checks.user_exists_check)
     async def rename(self, ctx, monster_id: int, name):
         monster_db = db.Monster.get(monster_id)
-        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)[0]
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
         
         if monster_db is None:
             await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
