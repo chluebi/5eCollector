@@ -40,5 +40,5 @@ for guild_id in guilds_ids:
     cur.execute(command, (config['game']['combat']['attacks'], config['game']['combat']['attack_cooldown'], guild_id))
 
 
-#db.conn.commit()
+db.conn.commit()
 cur.close()

@@ -14,3 +14,7 @@ bot.log
 bestiary-mm_visual.json
 
 resources/
+
+scripts/__pycache__/
+
+scripts/database/__pycache__/
