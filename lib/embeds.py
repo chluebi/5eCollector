@@ -11,6 +11,7 @@ import lib.getters
 
 config = lib.util.config
 
+
 async def user_info(user, ctx):
     if user is None or not await lib.checks.user_exists(user.id, ctx.guild.id):
         await ctx.message.channel.send(f'User not found')
@@ -33,10 +34,18 @@ async def user_info(user, ctx):
         catch_text = f'**{user_db.catches}** (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)'
     else:
         catch_text = '**' + str(config['game']['rolling']['catches']) + '**'
+
+    attack_countdown = (user_db.attack_timestamp + config['game']['combat']['attack_cooldown']) - time.time()
+    if attack_countdown > 0:
+        attack_text = f'**{user_db.attacks}** (Resets in **{lib.time_handle.seconds_to_text(attack_countdown)}**)'
+    else:
+        attack_text = '**' + str(config['game']['combat']['attacks']) + '**'
+
     desc = f'''
 Score: **{user_db.score}**
 Rolls Remaining: {roll_text}
 Catches Remaining: {catch_text}
+Attacks Remaining: {attack_text}
     '''
     embed = discord.Embed(title=f'{user} ({ctx.guild})', description=desc)
     embed.set_thumbnail(url=user.avatar_url)
