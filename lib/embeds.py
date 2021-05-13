@@ -87,12 +87,13 @@ Catches Remaining: {catch_text}
 
     for name, value in fields:
         title = f'Group: #{group_db.id} {group_db.name}'
-        if len(embed.fields) > 3:
+        if len(embeds[-1].fields) > 3:
             embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
+            embeds.append(embed)
         if len(value) < 1:
             value = '[empty]'
 
-        embed.add_field(name=name, value=value, inline=False)
+        embeds[-1].add_field(name=name, value=value, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
@@ -211,7 +212,7 @@ async def user_monsters(ctx, user, options):
     embeds = [embed]
 
     for i, field in enumerate(fields, 1):
-        if len(embed.fields) > 3:
+        if len(embeds[-1].fields) > 3:
             embeds.append(discord.Embed(title=f'Monsters of {str(user)}', description=f'page {len(embeds) + 1}'))
 
         if len(field) < 1:
@@ -347,12 +348,13 @@ async def user_groups(ctx, user, options):
         embeds = [embed]
 
     for name, value in fields:
-        if len(embed) > 5000:
+        if len(embeds[-1]) > 5000:
             embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
-        
+            embeds.append(embed)
+            
         if len(value) < 1:
             value = '[empty]'
-        embed.add_field(name=name, value=value, inline=False)
+        embeds[-1].add_field(name=name, value=value, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
