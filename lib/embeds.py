@@ -182,7 +182,7 @@ async def user_monsters(ctx, user, options):
 
         filtered = True
         for f in filters:
-            filtered = True and f in text
+            filtered = True and f.lower() in text.lower()
 
         if filtered:
             monsters.append(text)
