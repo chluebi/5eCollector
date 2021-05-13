@@ -287,11 +287,28 @@ async def user_groups(ctx, user, options):
         for group_db, monsters in groups:
             title = f'Group: #{group_db.id} {group_db.name}'
             fields.append([title, ''])
-            for monster in monsters:
-                if len(fields[-1][1]) + len(monster) > 1000:
-                    fields.append([title, ''])
 
-                fields[-1][1] += monster
+            filtered = True
+            for f in filters:
+                filtered = True and (f.lower() in title.lower())
+
+            if filtered:
+                for monster in monsters:
+                    if len(fields[-1][1]) + len(monster) > 1000:
+                        fields.append([title, ''])
+                    fields[-1][1] += monster
+            else:
+                for monster in monsters:
+
+                    filtered = True
+                    for f in filters:
+                        filtered = True and (f.lower() in monster.lower())
+
+                    if filtered:
+                        if len(fields[-1][1]) + len(monster) > 1000:
+                            fields.append([title, ''])
+                        fields[-1][1] += monster
+
 
         embeds = [embed]
     else:
@@ -321,7 +338,7 @@ async def user_groups(ctx, user, options):
 
             filtered = True
             for f in filters:
-                filtered = True and (f in title or f in monsters)
+                filtered = True and (f.lower() in title.lower() or f.lower() in monsters.lower())
 
             if filtered:
                 value = monsters
