@@ -2,6 +2,8 @@
 import discord
 import time
 
+from psycopg2.extensions import TRANSACTION_STATUS_INERROR
+
 import lib.database as db
 import lib.checks
 import lib.resources
@@ -109,34 +111,61 @@ async def user_monsters(ctx, user, options):
             break
 
     title = f'Monsters of {str(user)} (sorted by {sort})'
-    reverse = False if '-' in options else True
+    reverse = False if ('-' in options or 'r' in options) else True
 
     if sort in ['id']:
-        monsters_db.sort(key=lambda x: x.id, reverse=not reverse)
-    elif sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+        monsters_db = [(m, ('id', m.id)) for m in monsters_db]
+        additional_stat = False
+        reverse = not reverse
+        # monsters_db.sort(key=lambda x: x.id, reverse=not reverse)
+    if sort in ['name']:
+        monsters_db = [(m, ('name', m.name)) for m in monsters_db]
+        additional_stat = False
+        reverse = not reverse
+        #monsters_db.sort(key=lambda x: x.name, reverse=not reverse)
+    elif sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha', 'cr']:
         if sort in ['level']:
-            monsters_db.sort(key=lambda x: x.id, reverse=reverse)
+            monsters_db = [(m, ('level', m.level)) for m in monsters_db]
+            additional_stat = False
+            reverse = reverse
+            #monsters_db.sort(key=lambda x: x.level, reverse=reverse)
         elif sort in ['hp']:
             def get_hp(monster_db):
                 monster = lib.resources.get_monster(monster_db.type)
                 hp = lib.util.get_hp(monster['hp'], monster_db.level)
                 return hp
-            monsters_db.sort(key=get_hp, reverse=reverse)
+            monsters_db = [(m, ('hp', get_hp(m))) for m in monsters_db]
+            additional_stat = True
+            reverse = reverse
+            #monsters_db.sort(key=get_hp, reverse=reverse)
         elif sort in ['ac']:
             def get_ac(monster_db):
                 monster = lib.resources.get_monster(monster_db.type)
                 ac = lib.util.get_ac(monster['ac'], monster_db.level)
                 return ac
-            monsters_db.sort(key=get_ac, reverse=reverse)
+            monsters_db = [(m, ('ac', get_ac(m))) for m in monsters_db]
+            additional_stat = True
+            reverse = reverse
+            #monsters_db.sort(key=get_ac, reverse=reverse)
         else:
             def get_stat(monster_db):
                 monster = lib.resources.get_monster(monster_db.type)
                 stat = lib.util.get_stat(monster, sort, monster_db.level)
                 return stat
-            monsters_db.sort(key=get_stat, reverse=reverse) 
+            monsters_db = [(m, (sort, get_stat(m))) for m in monsters_db]
+            additional_stat = sort != 'cr'
+            reverse = reverse
+            #monsters_db.sort(key=get_stat, reverse=reverse)
+
     else:
-        monsters_db.sort(key=lambda x: x.name, reverse=not reverse)
+        monsters_db = [(m, (sort, m.type)) for m in monsters_db]
+        additional_stat = False
+        reverse = not reverse
+        #monsters_db.sort(key=lambda x: x.type, reverse=not reverse)
         title = f'Monsters of {str(user)} (sorted alphabetically)'
+
+
+    monsters_db.sort(key=lambda x: x[1][1], reverse=reverse)
 
     filters = []
     for o in options:
@@ -145,8 +174,12 @@ async def user_monsters(ctx, user, options):
             if len(o_list) > 1:
                 filters.append(':'.join(o_list[1:]))
 
-    for monster_db in monsters_db:
+    for monster_db, (stat_name, stat) in monsters_db:
         text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+        if additional_stat:
+            text = text[:-1]
+            text += f' **[{stat_name}: {stat}]** \n'
+
         filtered = True
         for f in filters:
             filtered = True and f in text
