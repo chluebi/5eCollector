@@ -30,6 +30,12 @@ def delete_tables(conn):
         '''
         '''
         DROP TABLE free_monsters; 
+        ''',
+        '''
+        DROP TABLE groups CASCADE;
+        ''',
+        '''
+        DROP TABLE groupMonsters CASCADE;
         '''
         )
 
@@ -98,6 +104,23 @@ def create_tables(conn):
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
             channel_id bigint,
             message_id bigint
+        )
+        ''',
+        '''
+        CREATE TABLE groups (
+            id SERIAL UNIQUE NOT NULL,
+            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
+            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT,
+            description TEXT,
+            favorite BOOLEAN
+        )
+        ''',
+        '''
+        CREATE TABLE groupMonsters (
+            monster_id bigint REFERENCES monsters(id) ON DELETE CASCADE,
+            group_id bigint REFERENCES groups(id) ON DELETE CASCADE,
+            group_index int
         )
         ''')
 
@@ -339,52 +362,6 @@ class Group:
         self.id, self.guild_id, self.owner_id, self.name, self.description, self.favorite = row
 
     @staticmethod
-    def create_table():
-        commands = (
-        '''
-        CREATE TABLE groups (
-            id SERIAL UNIQUE NOT NULL,
-            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
-            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
-            name TEXT,
-            description TEXT,
-            favorite BOOLEAN
-        )
-        ''',)
-
-        cur = conn.cursor()
-
-        for c in commands:
-            try:    
-                cur.execute(c)
-            except Exception as e:
-                print('could not execute command', c)
-                raise e
-
-        conn.commit()
-        cur.close()
-
-    @staticmethod
-    def delete_table():
-        commands = (
-        '''
-        DROP TABLE groups CASCADE;
-        '''
-        ,)
-
-        cur = conn.cursor()
-
-        for c in commands:
-            try:    
-                cur.execute(c)
-            except Exception as e:
-                print('could not execute command', c)
-                raise e
-
-        conn.commit()
-        cur.close()
-
-    @staticmethod
     def get(id):
         cur = conn.cursor()
         command = '''SELECT * FROM groups WHERE id = %s'''
@@ -466,49 +443,6 @@ class GroupMonster:
 
     def __init__(self, row):
         self.monster_id, self.group_id, self.group_index = row
-
-    @staticmethod
-    def create_table():
-        commands = (
-        '''
-        CREATE TABLE groupMonsters (
-            monster_id bigint REFERENCES monsters(id) ON DELETE CASCADE,
-            group_id bigint REFERENCES groups(id) ON DELETE CASCADE,
-            group_index int
-        )
-        ''',)
-
-        cur = conn.cursor()
-
-        for c in commands:
-            try:    
-                cur.execute(c)
-            except Exception as e:
-                print('could not execute command', c)
-                raise e
-
-        conn.commit()
-        cur.close()
-
-    @staticmethod
-    def delete_table():
-        commands = (
-        '''
-        DROP TABLE groupMonsters CASCADE;
-        '''
-        ,)
-
-        cur = conn.cursor()
-
-        for c in commands:
-            try:    
-                cur.execute(c)
-            except Exception as e:
-                print('could not execute command', c)
-                raise e
-
-        conn.commit()
-        cur.close()
 
     @staticmethod
     def get(monster_id, group_id):
