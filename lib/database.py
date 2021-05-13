@@ -213,10 +213,10 @@ class User:
     @staticmethod
     def create(id, guild_id, timestamp):
         cur = conn.cursor()
-        command = '''INSERT INTO users(user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s);'''
+        command = '''INSERT INTO users(user_id, guild_id, score, rolls, roll_timestamp, catches, catch_timestamp, attacks, attack_timestamp) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);'''
         cur.execute(command, (id, guild_id, 0,
-         config['game']['rolling']['rolls'], timestamp, config['game']['rolling']['catches'], timestamp))
+         config['game']['rolling']['rolls'], timestamp, config['game']['rolling']['catches'], timestamp, config['game']['combat']['attacks'], timestamp))
         conn.commit()
         cur.close()
 
@@ -258,6 +258,27 @@ class User:
         
         conn.commit()
         cur.close()
+
+
+    @staticmethod
+    def attack(id, guild_id, attacks, attack_timestamp):
+        cur = conn.cursor()
+
+        if attack_timestamp is not None:
+            command = '''UPDATE users
+                        SET atttacks = %s, attack_timestamp = %s
+                        WHERE user_id = %s AND guild_id = %s;'''
+            cur.execute(command, (attacks, attack_timestamp, id, guild_id))
+
+        else:
+            command = '''UPDATE users
+                        SET attacks = %s
+                        WHERE user_id = %s AND guild_id = %s;'''
+            cur.execute(command, (attacks, id, guild_id))
+        
+        conn.commit()
+        cur.close()
+
 
     @staticmethod
     def set_score(id, guild_id, score):

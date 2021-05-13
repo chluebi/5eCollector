@@ -74,11 +74,22 @@ class CombatCog(commands.Cog):
     async def attack(self, ctx, target, group_id, stat):
 
         target = lib.getters.get_user(target, ctx.guild.members)
-        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+        user_id = user_db.id
 
         if target is None:
             await ctx.message.channel.send(f'User *{target}* not found.')
             return
+
+        if user_db.attacks < 1:
+            attack_countdown = (user_db.attack_timestamp + config['game']['combat']['attack_cooldown']) - time.time()
+            if attack_countdown > 0:
+                await ctx.send(f'You are out of attacks. (Resets in **{lib.time_handle.seconds_to_text(attack_countdown)}**)')
+                return
+            else:
+                db.User.attack(ctx.message.author.id, ctx.guild.id,config['game']['combat']['attacks']-1, time.time())
+        else:
+            db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, None)
 
         async def send_message():
             await ctx.message.channel.send('\n'.join(messages))
@@ -227,7 +238,7 @@ class CombatCog(commands.Cog):
             for m in formatted_message:
                 messages.append(await ctx.message.channel.send(m))
 
-            summary_msg += '\n Full Summary: {messages[0].jump_url}'
+            summary_msg += f'\n Full Summary: {messages[0].jump_url}'
             await summary_message.edit(content=summary_msg)
 
 def setup(bot):
