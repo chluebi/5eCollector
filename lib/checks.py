@@ -14,6 +14,8 @@ async def guild_exists_check(ctx):
     return await guild_exists(ctx.guild.id)
 
 async def user_exists(id, guild_id):
+    if not await guild_exists(guild_id):
+        return False
     row = db.User.get_by_member(guild_id, id)
     if row is None:
         db.User.create(id, guild_id, time.time())
