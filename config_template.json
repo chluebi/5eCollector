@@ -12,9 +12,17 @@
         "password":""
     },
     "game": {
-        "rolls": 10,
-        "roll_cooldown": 10800,
-        "catches": 3,
-        "catch_cooldown": 21600
+        "rolling": {
+            "rolls": 10,
+            "roll_cooldown": 10800,
+            "catches": 3,
+            "catch_cooldown": 21600
+        },
+        "combat": {
+            "attacks": 3,
+            "attack_cooldown": 10800,
+            "exhaust_cooldown": 10800,
+            "chosen_exhaust_cooldown": 86400
+        }
     }
 }
