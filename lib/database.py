@@ -71,6 +71,8 @@ def create_tables(conn):
             roll_timestamp double precision,
             catches int,
             catch_timestamp double precision,
+            attacks int,
+            attack_timestamp double precision,
             PRIMARY KEY (user_id, guild_id)
         );
         ''',
@@ -173,7 +175,7 @@ class Guild:
 class User:
 
     def __init__(self, row):
-        self.id, self.user_id, self.guild_id, self.score, self.rolls, self.roll_timestamp, self.catches, self.catch_timestamp = row
+        self.id, self.user_id, self.guild_id, self.score, self.rolls, self.roll_timestamp, self.catches, self.catch_timestamp, self.attacks, self.attack_timestamp = row
 
     @staticmethod
     def get(id):
