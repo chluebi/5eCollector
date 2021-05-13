@@ -111,7 +111,7 @@ class MonsterCog(commands.Cog):
         if len(name) > 100:
             await ctx.message.channel.send(f'The new name can not be longer than 100 characters.')
 
-        db.Monster.rename(id, name)
+        db.Monster.rename(monster_db.id, name)
         await ctx.message.channel.send(f'**{monster_db.name}** has been successfully renamed to **{name}**')
 
     @commands.command()
