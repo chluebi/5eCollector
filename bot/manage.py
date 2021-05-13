@@ -32,8 +32,7 @@ class UserCog(commands.Cog):
     @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def userinfo(self, ctx, user_name, action='view', *options):
-        user = lib.getters.get_user(user_name, ctx.guild.members)
+    async def userinfo(self, ctx, user: discord.ext.commands.MemberConverter, action='view', *options):
         
         if action in ['monsters', 'monster']:
             await lib.embeds.user_monsters(ctx, user, options)
@@ -73,6 +72,9 @@ class MonsterCog(commands.Cog):
             if monster_db is None:
                 await ctx.message.channel.send(f'Monster with id {monster_id} not found')
                 return
+            if monster_db.guild_id != ctx.guild.id:
+                await ctx.message.channel.send(f'Monster with id {monster_id} not found on this guild')
+                return
             #id, name, type, level, exhausted_timestamp, guild_id, owner_id = row
             monster = lib.resources.get_monster(monster_db.type)
 
@@ -95,7 +97,7 @@ class MonsterCog(commands.Cog):
     @commands.check(lib.checks.user_exists_check)
     async def rename(self, ctx, monster_id: int, name):
         monster_db = db.Monster.get(monster_id)
-        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)[0]
+        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
         
         if monster_db is None:
             await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
@@ -109,7 +111,7 @@ class MonsterCog(commands.Cog):
         if len(name) > 100:
             await ctx.message.channel.send(f'The new name can not be longer than 100 characters.')
 
-        db.Monster.rename(id, name)
+        db.Monster.rename(monster_db.id, name)
         await ctx.message.channel.send(f'**{monster_db.name}** has been successfully renamed to **{name}**')
 
     @commands.command()
@@ -151,11 +153,10 @@ class MonsterCog(commands.Cog):
         await ctx.message.channel.send(f'**{data[0].type} [{stars}]** were combined into **{data[0].type} [{stars}★]**')
 
 
-    @commands.command()
+    @commands.command(aliases=['gift'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def give(self, ctx, receiver, given_id: int):
-        receiver = lib.getters.get_user(receiver, ctx.guild.members)
+    async def give(self, ctx, receiver: discord.ext.commands.MemberConverter, given_id: int):
         if receiver is None:
             await ctx.message.channel.send('User not found')
             return
@@ -239,7 +240,7 @@ class MonsterCog(commands.Cog):
         await message.add_reaction('✔️')
 
         def check(reaction, user):
-            return reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+            return reaction.message.id == message.id and str(reaction.emoji) == '✔️' and not user.bot
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
@@ -266,7 +267,7 @@ class MonsterCog(commands.Cog):
 
             user_db = db.User.get_by_member(ctx.guild.id, user.id)
 
-            title = f'Monster has been captured by {user.mention}'
+            title = f'Monster has been captured by {user}'
             embed.set_footer(text=title)
             await message.edit(embed=embed)
 

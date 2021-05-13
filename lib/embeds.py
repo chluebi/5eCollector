@@ -2,12 +2,15 @@
 import discord
 import time
 
+from psycopg2.extensions import TRANSACTION_STATUS_INERROR
+
 import lib.database as db
 import lib.checks
 import lib.resources
 import lib.getters
 
 config = lib.util.config
+
 
 async def user_info(user, ctx):
     if user is None or not await lib.checks.user_exists(user.id, ctx.guild.id):
@@ -31,10 +34,18 @@ async def user_info(user, ctx):
         catch_text = f'**{user_db.catches}** (Resets in **{lib.time_handle.seconds_to_text(catch_countdown)}**)'
     else:
         catch_text = '**' + str(config['game']['rolling']['catches']) + '**'
+
+    attack_countdown = (user_db.attack_timestamp + config['game']['combat']['attack_cooldown']) - time.time()
+    if attack_countdown > 0:
+        attack_text = f'**{user_db.attacks}** (Resets in **{lib.time_handle.seconds_to_text(attack_countdown)}**)'
+    else:
+        attack_text = '**' + str(config['game']['combat']['attacks']) + '**'
+
     desc = f'''
 Score: **{user_db.score}**
 Rolls Remaining: {roll_text}
 Catches Remaining: {catch_text}
+Attacks Remaining: {attack_text}
     '''
     embed = discord.Embed(title=f'{user} ({ctx.guild})', description=desc)
     embed.set_thumbnail(url=user.avatar_url)
@@ -85,12 +96,13 @@ Catches Remaining: {catch_text}
 
     for name, value in fields:
         title = f'Group: #{group_db.id} {group_db.name}'
-        if len(embed.fields) > 3:
+        if len(embeds[-1].fields) > 3:
             embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
+            embeds.append(embed)
         if len(value) < 1:
             value = '[empty]'
 
-        embed.add_field(name=name, value=value, inline=False)
+        embeds[-1].add_field(name=name, value=value, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
@@ -109,34 +121,61 @@ async def user_monsters(ctx, user, options):
             break
 
     title = f'Monsters of {str(user)} (sorted by {sort})'
-    reverse = False if '-' in options else True
+    reverse = False if ('-' in options or 'r' in options) else True
 
     if sort in ['id']:
-        monsters_db.sort(key=lambda x: x.id, reverse=not reverse)
-    elif sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+        monsters_db = [(m, ('id', m.id)) for m in monsters_db]
+        additional_stat = False
+        reverse = not reverse
+        # monsters_db.sort(key=lambda x: x.id, reverse=not reverse)
+    if sort in ['name']:
+        monsters_db = [(m, ('name', m.name)) for m in monsters_db]
+        additional_stat = False
+        reverse = not reverse
+        #monsters_db.sort(key=lambda x: x.name, reverse=not reverse)
+    elif sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha', 'cr']:
         if sort in ['level']:
-            monsters_db.sort(key=lambda x: x.id, reverse=reverse)
+            monsters_db = [(m, ('level', m.level)) for m in monsters_db]
+            additional_stat = False
+            reverse = reverse
+            #monsters_db.sort(key=lambda x: x.level, reverse=reverse)
         elif sort in ['hp']:
             def get_hp(monster_db):
                 monster = lib.resources.get_monster(monster_db.type)
                 hp = lib.util.get_hp(monster['hp'], monster_db.level)
                 return hp
-            monsters_db.sort(key=get_hp, reverse=reverse)
+            monsters_db = [(m, ('hp', get_hp(m))) for m in monsters_db]
+            additional_stat = True
+            reverse = reverse
+            #monsters_db.sort(key=get_hp, reverse=reverse)
         elif sort in ['ac']:
             def get_ac(monster_db):
                 monster = lib.resources.get_monster(monster_db.type)
                 ac = lib.util.get_ac(monster['ac'], monster_db.level)
                 return ac
-            monsters_db.sort(key=get_ac, reverse=reverse)
+            monsters_db = [(m, ('ac', get_ac(m))) for m in monsters_db]
+            additional_stat = True
+            reverse = reverse
+            #monsters_db.sort(key=get_ac, reverse=reverse)
         else:
             def get_stat(monster_db):
                 monster = lib.resources.get_monster(monster_db.type)
                 stat = lib.util.get_stat(monster, sort, monster_db.level)
                 return stat
-            monsters_db.sort(key=get_stat, reverse=reverse) 
+            monsters_db = [(m, (sort, get_stat(m))) for m in monsters_db]
+            additional_stat = sort != 'cr'
+            reverse = reverse
+            #monsters_db.sort(key=get_stat, reverse=reverse)
+
     else:
-        monsters_db.sort(key=lambda x: x.name, reverse=not reverse)
+        monsters_db = [(m, (sort, m.type)) for m in monsters_db]
+        additional_stat = False
+        reverse = not reverse
+        #monsters_db.sort(key=lambda x: x.type, reverse=not reverse)
         title = f'Monsters of {str(user)} (sorted alphabetically)'
+
+
+    monsters_db.sort(key=lambda x: x[1][1], reverse=reverse)
 
     filters = []
     for o in options:
@@ -145,11 +184,15 @@ async def user_monsters(ctx, user, options):
             if len(o_list) > 1:
                 filters.append(':'.join(o_list[1:]))
 
-    for monster_db in monsters_db:
+    for monster_db, (stat_name, stat) in monsters_db:
         text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
+        if additional_stat:
+            text = text[:-1]
+            text += f' **[{stat_name}: {stat}]** \n'
+
         filtered = True
         for f in filters:
-            filtered = True and f in text
+            filtered = True and f.lower() in text.lower()
 
         if filtered:
             monsters.append(text)
@@ -178,7 +221,7 @@ async def user_monsters(ctx, user, options):
     embeds = [embed]
 
     for i, field in enumerate(fields, 1):
-        if len(embed.fields) > 3:
+        if len(embeds[-1].fields) > 3:
             embeds.append(discord.Embed(title=f'Monsters of {str(user)}', description=f'page {len(embeds) + 1}'))
 
         if len(field) < 1:
@@ -254,11 +297,28 @@ async def user_groups(ctx, user, options):
         for group_db, monsters in groups:
             title = f'Group: #{group_db.id} {group_db.name}'
             fields.append([title, ''])
-            for monster in monsters:
-                if len(fields[-1][1]) + len(monster) > 1000:
-                    fields.append([title, ''])
 
-                fields[-1][1] += monster
+            filtered = True
+            for f in filters:
+                filtered = True and (f.lower() in title.lower())
+
+            if filtered:
+                for monster in monsters:
+                    if len(fields[-1][1]) + len(monster) > 1000:
+                        fields.append([title, ''])
+                    fields[-1][1] += monster
+            else:
+                for monster in monsters:
+
+                    filtered = True
+                    for f in filters:
+                        filtered = True and (f.lower() in monster.lower())
+
+                    if filtered:
+                        if len(fields[-1][1]) + len(monster) > 1000:
+                            fields.append([title, ''])
+                        fields[-1][1] += monster
+
 
         embeds = [embed]
     else:
@@ -288,7 +348,7 @@ async def user_groups(ctx, user, options):
 
             filtered = True
             for f in filters:
-                filtered = True and (f in title or f in monsters)
+                filtered = True and (f.lower() in title.lower() or f.lower() in monsters.lower())
 
             if filtered:
                 value = monsters
@@ -297,12 +357,13 @@ async def user_groups(ctx, user, options):
         embeds = [embed]
 
     for name, value in fields:
-        if len(embed) > 5000:
+        if len(embeds[-1]) > 5000:
             embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
-        
+            embeds.append(embed)
+            
         if len(value) < 1:
             value = '[empty]'
-        embed.add_field(name=name, value=value, inline=False)
+        embeds[-1].add_field(name=name, value=value, inline=False)
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
