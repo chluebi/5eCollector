@@ -105,7 +105,8 @@ def create_tables(conn):
             type text,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
             channel_id bigint,
-            message_id bigint
+            message_id bigint,
+            created_timestamp double precision
         )
         ''',
         '''
@@ -609,7 +610,7 @@ class Chosen:
 class FreeMonster:
 
     def __init__(self, row):
-        self.id, self.type, self.guild_id, self.channel_id, self.message_id = row
+        self.id, self.type, self.guild_id, self.channel_id, self.message_id, self.created_timestamp = row
 
     @staticmethod
     def get(guild_id, channel_id, message_id):
@@ -624,10 +625,19 @@ class FreeMonster:
             return FreeMonster(row)
 
     @staticmethod
-    def create(typ, guild_id, channel_id, message_id):
+    def get_expired(timestamp):
         cur = conn.cursor()
-        command = '''INSERT INTO free_monsters(type, guild_id, channel_id, message_id) VALUES (%s, %s, %s, %s);'''
-        cur.execute(command, (typ, guild_id, channel_id, message_id))
+        command = '''SELECT * FROM free_monsters WHERE created_timestamp < %s'''
+        cur.execute(command, (timestamp, ))
+        rows = cur.fetchall()
+        cur.close()
+        return [FreeMonster(row) for row in rows]
+
+    @staticmethod
+    def create(typ, guild_id, channel_id, message_id, created_timestamp):
+        cur = conn.cursor()
+        command = '''INSERT INTO free_monsters(type, guild_id, channel_id, message_id, created_timestamp) VALUES (%s, %s, %s, %s, %s);'''
+        cur.execute(command, (typ, guild_id, channel_id, message_id, created_timestamp))
         conn.commit()
         cur.close()
 
@@ -645,4 +655,11 @@ class FreeMonster:
         cur = conn.cursor()
         command = '''DELETE FROM free_monsters WHERE id = %s'''
         cur.execute(command, (id,))
+        cur.close()
+
+    @staticmethod
+    def remove_expired(timestamp):
+        cur = conn.cursor()
+        command = '''DELETE FROM free_monsters WHERE created_timestamp < %s'''
+        cur.execute(command, (timestamp, ))
         cur.close()

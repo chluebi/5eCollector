@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import time
 
 import lib.checks
@@ -39,8 +39,30 @@ class RollCog(commands.Cog):
 
         message = await ctx.send(embed=embed)
 
-        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id)
+        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id, time.time())
         await message.add_reaction('🗨️')
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.remove_expired.start()
+
+    @tasks.loop(seconds=config['game']['rolling']['expire_cooldown'])
+    async def remove_expired(self):
+        expired_monsters_db = db.FreeMonster.get_expired(time.time() - config['game']['rolling']['expire_cooldown'])
+
+        for expired_monster_db in expired_monsters_db:
+            monster = lib.resources.get_monster(expired_monster_db.type)
+            embed = lib.embeds.generate_monster_embed(monster)
+            embed.set_footer(text=f'❌ Expired ❌')
+
+            guild = self.bot.get_guild(expired_monster_db.guild_id)
+            channel = guild.get_channel(expired_monster_db.channel_id)
+            message = await channel.fetch_message(expired_monster_db.message_id)
+
+            await message.edit(embed=embed)
+            await message.remove_reaction('🗨️', self.bot.user)
+
+            db.FreeMonster.remove(expired_monster_db.id)
 
 
 class CatchCog(commands.Cog):
