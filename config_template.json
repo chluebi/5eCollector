@@ -16,7 +16,8 @@
             "rolls": 10,
             "roll_cooldown": 10800,
             "catches": 3,
-            "catch_cooldown": 21600
+            "catch_cooldown": 21600,
+            "expire_cooldown": 86400
         },
         "combat": {
             "attacks": 3,

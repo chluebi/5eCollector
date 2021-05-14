@@ -1,1 +1,1 @@
-import scripts.database.migrate_to_limited_attacks
+import scripts.database.migrate_to_expiring
