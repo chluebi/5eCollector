@@ -267,7 +267,7 @@ class User:
 
         if attack_timestamp is not None:
             command = '''UPDATE users
-                        SET atttacks = %s, attack_timestamp = %s
+                        SET attacks = %s, attack_timestamp = %s
                         WHERE user_id = %s AND guild_id = %s;'''
             cur.execute(command, (attacks, attack_timestamp, id, guild_id))
 
