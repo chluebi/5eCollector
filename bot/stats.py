@@ -62,7 +62,7 @@ class StatsCog(commands.Cog):
                 user = ctx.guild.get_member(user_db.user_id)
                 ranking.append((len(monster_rows), f'{user} ({len(monster_rows)})'))
 
-        elif category in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+        elif category in ['level', 'hp', 'ac', 'cr', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
             ranking_title = f'**Ranking by {category.capitalize()}**'
             monsters = db.Monster.get_by_guild(ctx.guild.id)
 
@@ -94,6 +94,8 @@ class StatsCog(commands.Cog):
                         stat = lib.util.get_ac(monster['ac'], monster_db.level)
                     elif category in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
                         stat = lib.util.get_stat(monster, category, monster_db.level)
+                    elif category in ['cr']:
+                        stat = monster[category] if monster[category] < 1 else int(monster[category])
 
                     text += f' **[{category.capitalize()}: {stat}]**'
                     text = f'{user}\'s ' + text
