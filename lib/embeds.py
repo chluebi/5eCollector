@@ -444,7 +444,7 @@ def monster_full_title(id, name, type, level, exhausted_timestamp):
 
 def generate_monster_embed(monster):
     title = monster['name'] + ' CR: ' + monster['visual_cr']
-    description = monster['type']
+    description = ', '.join(monster['traits'])
     embed = discord.Embed(title=title, description=description, url=monster['link'])
 
     embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
@@ -466,7 +466,7 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
     title = name + ' [CR: ' + monster['visual_cr'] + f'] [{stars}]'
     if chosen:
         title = f'[CHOSEN] [HP: {hp}] ' + title
-    description = monster['type']
+    description = ', '.join(monster['traits'])
     if name != monster['name']:
         description = monster['name'] + ', ' + description
     embed = discord.Embed(title=title, description=description, url=monster['link'])

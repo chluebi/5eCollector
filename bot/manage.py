@@ -87,8 +87,35 @@ class MonsterCog(commands.Cog):
 
             embed = lib.embeds.generate_caught_monster_embed(monster_db.name, monster, owner, monster_db.level, monster_db.exhausted_timestamp, chosen=chosen, hp=hp)
         except ValueError:
-            monster= lib.resources.get_monster(monster)
+            monster = lib.resources.get_monster(monster)
+            if monster is None:
+                await ctx.message.channel.send(f'No monster of this type found (case sensitive).')
+                return
             embed = lib.embeds.generate_monster_embed(monster)
+
+            monsters_db = sorted(db.Monster.get_by_type(ctx.guild.id, monster['name']), key=lambda x: x.level, reverse=True)
+            monster_text = ''
+            for monster_db in monsters_db[:10]:
+                user_db = db.User.get(monster_db.owner_id)
+                user = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
+                monster_text += f'{user}\'s '
+                monster_text += lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
+                monster_text += '\n'
+            
+            if len(monsters_db) > 10:
+                monster_text += f'and {len(monsters_db) - 10} others.'
+            if len(monsters_db) < 1:
+                monster_text = 'No monsters of this type have been caught in this guild.'
+            embed.add_field(name='Owned:', value=monster_text)
+
+            free_monsters_db = sorted(db.FreeMonster.get_by_type(ctx.guild.id, monster['name']), key=lambda x: x.id)
+            monster_text = ''
+            for free_monster_db in free_monsters_db[:10]:
+                monster_text = f'https://discord.com/channels/{free_monster_db.guild_id}/{free_monster_db.channel_id}/{free_monster_db.message_id}'
+                monster_text += '\n'
+            if len(free_monsters_db) < 1:
+                monster_text = 'No monsters of this type are currently uncaught in this guild.'
+            embed.add_field(name='Still uncaught:', value=monster_text)
 
         await ctx.message.channel.send(embed=embed)
 

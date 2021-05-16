@@ -335,6 +335,15 @@ class Monster:
         return [Monster(row) for row in rows]
 
     @staticmethod
+    def get_by_type(guild_id, type):
+        cur = conn.cursor()
+        command = '''SELECT * FROM monsters WHERE guild_id = %s AND type = %s'''
+        cur.execute(command, (guild_id, type))
+        rows = cur.fetchall()
+        cur.close()
+        return [Monster(row) for row in rows]
+
+    @staticmethod
     def rename(id, name):
         cur = conn.cursor()
         command = '''UPDATE monsters
@@ -623,6 +632,15 @@ class FreeMonster:
             return None
         else:
             return FreeMonster(row)
+
+    @staticmethod
+    def get_by_type(guild_id, type):
+        cur = conn.cursor()
+        command = '''SELECT * FROM free_monsters WHERE guild_id = %s AND type = %s'''
+        cur.execute(command, (guild_id, type))
+        rows = cur.fetchall()
+        cur.close()
+        return [FreeMonster(row) for row in rows]
 
     @staticmethod
     def get_expired(timestamp):

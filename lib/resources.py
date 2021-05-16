@@ -45,7 +45,8 @@ def load_monsters():
     for file in os.listdir(path):
         with open(os.path.join(path, file)) as f:
             data += json.load(f)['monster']
-            
+    
+    traits = {}
     monsters = {}
     for monster in data:
         try:
@@ -57,9 +58,61 @@ def load_monsters():
 
             source = monster['source']
 
+            allowed = ['beast', 'monstrosity', 'dragon', 'undead', 'demon', 'aberration', 'elemental']
+            allowed += ['shapechanger', 'construct', 'devil', 'giant', 'plant', 'fey', 'elf']
+            allowed += ['yuan-ti', 'yugoloth', 'goblinoid', 'orc', 'gith', 'ooze', 'dwarf', 'celestial']
+
+            monster_traits = []
+
+            if type(monster['type']) is dict:
+                if 'type' in monster['type']:
+                    if monster['type']['type'] in allowed:
+                        monster_traits.append(monster['type']['type'])
+
+                for tag in monster['type']['tags']:
+                    if tag in allowed:
+                        monster_traits.append(tag)
+            else:
+                if monster['type'] in allowed:
+                    monster_traits.append(monster['type'])
+
+            if 'environment' in monster:
+                for env in monster['environment'][:3]:
+                    monster_traits.append(env)
+
+            damage_full = {
+                "A": "acid",
+                "B": "bludgeoner",
+                "C": "cold",
+                "F": "fire",
+                "O": "force",
+                "L": "lightning",
+                "N": "necrotic",
+                "P": "piercer",
+                "I": "poison",
+                "Y": "psychic",
+                "R": "radiant",
+                "S": "slasher",
+                "T": "thunder",
+            }
+
+            if 'damageTags' in monster:
+                for tag in monster['damageTags']:
+                    monster_traits.append(damage_full[tag])
+
+
+            for trait in monster_traits:
+                if trait not in traits:
+                    traits[trait] = 1
+                else:
+                    traits[trait] += 1
+
+            monster_traits = monster_traits[:max(3, int(cr//3))]
+
             monsters[monster['name']] = {
                 'name': monster['name'],
                 'type': get_type(monster['type']),
+                'traits': monster_traits,
                 'cr': cr,
                 'visual_cr': visual_cr,
                 'hp': monster['hp']['average'],
@@ -74,9 +127,15 @@ def load_monsters():
                 'source': source,
                 'image': f'https://5e.tools/img/{source}/{name}.png'.replace(' ', '%20')
             }
-        except KeyError:
+        except Exception as e:
             continue
 
+    l = sorted(list(traits.items()), key=lambda x: x[1], reverse=True)
+
+    l = sorted([(monster['name'], monster['traits']) for _, monster in monsters.items()], key=lambda x: len(x[1]), reverse=True)
+    for monster, traits in l:
+        pass
+    
     return monsters
 
 
