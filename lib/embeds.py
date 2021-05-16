@@ -428,7 +428,10 @@ def group_full_title(group_db, group_monsters_db):
 
                                 
 def monster_full_title(id, name, type, level, exhausted_timestamp):
-    cr = lib.resources.get_monster(type)['visual_cr']
+    monster = lib.resources.get_monster(type)
+    if monster is None:
+        return f'Type [{type}] not recognized'
+    cr = monster['visual_cr']
     stars = ''.join(['★' for i in range(level)])
     if name != type:
         text = f'**{name}** ({type}) [Cr: {cr}] [{stars}]'
