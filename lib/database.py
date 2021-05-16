@@ -386,6 +386,7 @@ class Monster:
         cur = conn.cursor()
         command = '''DELETE FROM monsters WHERE id = %s'''
         cur.execute(command, (id,))
+        conn.commit()
         cur.close()
 
 
