@@ -111,7 +111,7 @@ class MonsterCog(commands.Cog):
             free_monsters_db = sorted(db.FreeMonster.get_by_type(ctx.guild.id, monster['name']), key=lambda x: x.id)
             monster_text = ''
             for free_monster_db in free_monsters_db[:10]:
-                monster_text = f'https://discord.com/channels/{free_monster_db.guild_id}/{free_monster_db.channel_id}/{free_monster_db.message_id}'
+                monster_text += f'https://discord.com/channels/{free_monster_db.guild_id}/{free_monster_db.channel_id}/{free_monster_db.message_id}'
                 monster_text += '\n'
             if len(free_monsters_db) < 1:
                 monster_text = 'No monsters of this type are currently uncaught in this guild.'
