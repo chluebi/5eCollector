@@ -3,9 +3,6 @@
         <a class="navbar-title" href="#title">
             5eCollector
         </a>
-        <a class="navbar-button" href="https://discord.com/oauth2/authorize?client_id=823204197280907323&scope=bot&permissions=117760">
-            Invite The Bot
-        </a>
         <a class="navbar-button" href="#tutorial">
             Tutorial
         </a>
@@ -87,67 +84,154 @@
             <div class="section-title">
                 Reference
             </div>
+            <div class="group">
+                <div class="group-title">
+                    Basic Commands
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col help
+                    </div>
+                    <div class="description">
+                        Gives you a link to this page.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col me [view|monsters|groups] [filtering and sorting options]
+                    </div>
+                    <div class="description">
+                        Gives you an overview of your user with "view".
+                    </div>
+                    <div class="description">
+                        Gives you an overview of your monsters with "monsters".
+                        <div class="description">
+                            Filtering and sorting options for monsters:
+                            <div class="description">
+                                <div class="code">
+                                    s:[id|name|type|cr|hp|ac|str|dex|con|int|wis|cha]
+                                </div>
+                                <div class="description">
+                                    Sort by the given attribute.
+                                </div>
+                                <div class="code">
+                                    -
+                                </div>
+                                <div class="description">
+                                    Reverse sorting order.
+                                </div>
+                                <div class="code">
+                                    f:[text]
+                                </div>
+                                <div class="description">
+                                    Filter by a given text (case insensitive).
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="description">
+                        Gives you an overview of your groups with "groups".
+                        <div class="description">
+                            Filtering and sorting options for groups:
+                            <div class="description">
+                                <div class="code">
+                                    expand
+                                </div>
+                                <div class="description">
+                                    Show monsters inside of the groups.
+                                </div>
+                                <div class="code">
+                                    s:[id|monsters]
+                                </div>
+                                <div class="description">
+                                    Sort by the given attribute.
+                                </div>
+                                <div class="code">
+                                    -
+                                </div>
+                                <div class="description">
+                                    Reverse sorting order.
+                                </div>
+                                <div class="code">
+                                    f:[text]
+                                </div>
+                                <div class="description">
+                                    Filter by a given text (case insensitive).
+                                </div>
+                            </div>
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col roll
+                    </div>
+                    <div class="description">
+                       Roll for a new creature
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col user [user]
+                    </div>
+                    <div class="description">
+                       Gives you an overview of a user.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col view [monster-id|monster-type]
+                    </div>
+                    <div class="description">
+                       Gives you an overview of a monster (by ID) or a monster-type (case sensitive).
+                    </div>
+                </div>
+            </div>
+            <div class="group">
+                <div class="group-title">
+                    Groups and Monster management
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col rename [monster-id] [name]
+                    </div>
+                    <div class="description">
+                       Rename a monster.
+                    </div>
+                </div>
+            </div>
             <div class="command">
-                <div class="code">
-                    col help
-                </div>
-                <div class="description">
-                    Gives you a link to this page.
-                </div>
-                <div class="code">
-                    col me
-                </div>
-                <div class="description">
-                    Gives you an overview of your user.
-                </div>
-                <div class="code">
-                    col user [user]
-                </div>
-                <div class="description">
-                   Gives you an overview of a user.
-                </div>
-                <div class="code">
-                    col view [monster-id|monster-type]
-                </div>
-                <div class="description">
-                   Gives you an overview of a monster (by ID) or a monster-type (case sensitive).
-                </div>
-                <div class="code">
-                    col rename [monster-id] [name]
-                </div>
-                <div class="description">
-                   Rename a monster.
-                </div>
-                <div class="code">
-                    col roll
-                </div>
-                <div class="description">
-                   Roll for a new creature
-                </div>
                 <div class="code">
                     col stats ["points"|"monster"|"glory"]
                 </div>
                 <div class="description">
                    Shows the ranking by a certain statistic.
                 </div>
+            </div>
+            <div class="command">
                 <div class="code">
                     col chosen [monster-id]
                 </div>
                 <div class="description">
                    Choose a monster as your new chosen. Choosing the current chosen makes them retreat.
                 </div>
+            </div>
+            <div class="command">
                 <div class="code">
                     col attack [player] [your-monster-id] [stat:("str"|"dex"|"con"|"int"|"wis"|"cha")]
                 </div>
                 <div class="description">
                    Attack a player's chosen.
                 </div>
+            </div>
+            <div class="command">
                 <div class="code">
                     col trade [your-monster-id] [other-monster-id]
                 </div>
                 <div class="description">
                    Trade one of your monsters for another.
                 </div>
+            </div>
+            <div class="command">
                 <div class="code">
                     col combine [monster-id] [monster-id] [monster-id]
                 </div>
@@ -162,13 +246,13 @@
     <style>
         body {
             --color-text: #000000;
-            --color-primary: #C26B29;
+            --color-primary: tan;
             --color-dark: #753A0D;
             --color-accent: #4B6356;
             --color-code: #AEE8C9;
         }
         body {
-            font-size: 1rem;
+            font-size: 1.5rem;
             color: var(--color-text);
             font-family: "Segoe UI", "Segoe WP", Tahoma, Arial, sans-serif;
             background-color: var(--color-primary);
@@ -176,14 +260,15 @@
         a {
             color: var(--color-accent);
         }
-        @media (min-width: 768px) {
-            .main{
-                width: 50%;
-                margin: 0 auto;
-            }
-        }
         .main {
             grid-row-gap: 2rem;
+            width: 50%;
+            margin: 0 auto;
+        }
+        @media screen and (max-width: 992px) {
+            .main{
+                width: 90%;
+            }
         }
         .grid-container {
             display: grid;
@@ -195,10 +280,10 @@
             display: grid;
             grid-template-rows: auto;
             grid-template-columns: auto auto auto auto;
-            grid-column-gap: 1rem;
+            grid-column-gap: 3rem;
             justify-content: center;
 
-            font-size: 1.5rem;
+            font-size: 2rem;
 
             background-color: var(--color-dark);
         }
@@ -219,11 +304,18 @@
             font-size: 1.5rem;
         }
         .section-title {
-            font-size: 2rem;
+            font-size: 4rem;
+        }
+        .group-title {
+            font-size: 3rem;
+        }
+        .group {
+            margin-bottom: 2rem;
+            margin-top: 2rem;
         }
         .command {
-            margin-bottom: 1rem;
-            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            margin-top: 1.5rem;
         }
         .code {
             margin: 1rem;
