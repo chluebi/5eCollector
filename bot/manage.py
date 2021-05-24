@@ -464,9 +464,10 @@ class GroupCog(commands.Cog):
                 if group_monster is not None:
                     await ctx.message.channel.send(f'Monster ``{monster.name}#{monster.id}`` is already in group ``{group_db.name}#{group_db.id}``.')
                     continue
-                if chosen_db.group_id == group_id and len(db.GroupMonster.get_by_group(group_id)) > 9:
-                    await ctx.message.channel.send(f'Group {group_id} is your chosen group and already at 10 monsters.')
-                    continue
+                if chosen_db is not None:
+                    if chosen_db.group_id == group_id and len(db.GroupMonster.get_by_group(group_id)) > 9:
+                        await ctx.message.channel.send(f'Group {group_id} is your chosen group and already at 10 monsters.')
+                        continue
                 
                 group_monsters_db = db.GroupMonster.get_by_group(group_id)
                 index = len(group_monsters_db)
