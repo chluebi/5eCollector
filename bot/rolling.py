@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 import time
+import asyncio
 
 import lib.checks
 import lib.database as db
@@ -18,29 +19,34 @@ class RollCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def roll(self, ctx):
-        #id, user_id, _, score, rolls, roll_timestamp, catches, catch_timestamp = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
-        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+    async def roll(self, ctx, amount=1):
+        
+        for r in range(int(amount)):
+            user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
 
-        if user_db.rolls < 1:
-            roll_countdown = (user_db.roll_timestamp + config['game']['rolling']['roll_cooldown']) - time.time()
-            if roll_countdown > 0:
-                await ctx.send(f'You are out of rolls. (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)')
-                return
+            if user_db.rolls < 1:
+                roll_countdown = (user_db.roll_timestamp + config['game']['rolling']['roll_cooldown']) - time.time()
+                if roll_countdown > 0:
+                    await ctx.send(f'You are out of rolls. (Resets in **{lib.time_handle.seconds_to_text(roll_countdown)}**)')
+                    return
+                else:
+                    db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolling']['rolls']-1, time.time())
             else:
-                db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolling']['rolls']-1, time.time())
-        else:
-            db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, None)
+                if user_db.rolls == config['game']['rolling']['rolls']:
+                    db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, time.time())
+                else:
+                    db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, None)
 
-        db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+1)
+            db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+1)
 
-        monster = lib.resources.random_monster()
-        embed = lib.embeds.generate_monster_embed(monster)
+            monster = lib.resources.random_monster()
+            embed = lib.embeds.generate_monster_embed(monster)
 
-        message = await ctx.send(embed=embed)
+            message = await ctx.send(embed=embed)
 
-        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id, time.time())
-        await message.add_reaction('🗨️')
+            db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id, time.time())
+            await message.add_reaction('🗨️')
+            await asyncio.sleep(1.5)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -99,7 +105,11 @@ class CatchCog(commands.Cog):
                 else:
                     db.User.catch(user.id, ctx.guild.id, config['game']['rolling']['catches']-1, time.time())
             else:
-                db.User.catch(user.id, ctx.guild.id, user_db.catches-1, None)
+                if user_db.catches == config['game']['rolling']['catches']:
+                    db.User.catch(user.id, ctx.guild.id, user_db.catches-1, time.time())
+                else:
+                    db.User.catch(user.id, ctx.guild.id, user_db.catches-1, None)
+
             db.User.set_score(user.id, ctx.guild.id, user_db.score+10)
 
             free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, ctx.message.id)

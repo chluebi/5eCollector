@@ -674,6 +674,7 @@ class FreeMonster:
         cur = conn.cursor()
         command = '''DELETE FROM free_monsters WHERE id = %s'''
         cur.execute(command, (id,))
+        conn.commit()
         cur.close()
 
     @staticmethod
@@ -681,4 +682,5 @@ class FreeMonster:
         cur = conn.cursor()
         command = '''DELETE FROM free_monsters WHERE created_timestamp < %s'''
         cur.execute(command, (timestamp, ))
+        conn.commit()
         cur.close()
