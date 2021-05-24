@@ -34,20 +34,18 @@ class StatsCog(commands.Cog):
 
         elif category in ['glory']:
             ranking_title = '**Ranking by Glory**'
-            rows = db.Chosen.get_by_guild(ctx.guild.id)
+            chosens_db = db.Chosen.get_by_guild(ctx.guild.id)
 
-            for chosen_db in rows:
-                #id, hp, guild_id, owner_id, monster_id, created_timestamp = row
+            for chosen_db in chosens_db:
                 user = ctx.guild.get_member(db.User.get(chosen_db.owner_id).user_id)
 
-                monster_db = db.Monster.get(chosen_db.monster_id)
-                #id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster_row
+                group_db = db.Group.get(chosen_db.group_id)
 
-                text = lib.embeds.monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
+                text = f'#{group_db.id} **{group_db.name}**'
 
                 glory = lib.util.get_glory(chosen_db.created_timestamp)
 
-                text += f' **[Glory: {glory}]** [HP: {chosen_db.hp}]'
+                text += f' **[Glory: {glory}]**'
                 text = f'{user}\'s ' + text
 
                 ranking.append((glory, text))

@@ -81,11 +81,7 @@ class MonsterCog(commands.Cog):
             user_db = db.User.get(monster_db.owner_id)
             owner = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
 
-            chosen_db = db.Chosen.get_by_monster(monster_db.id)
-            chosen = chosen_db is not None
-            hp = chosen_db.hp if chosen else 0
-
-            embed = lib.embeds.generate_caught_monster_embed(monster_db.name, monster, owner, monster_db.level, monster_db.exhausted_timestamp, chosen=chosen, hp=hp)
+            embed = lib.embeds.generate_caught_monster_embed(monster_db.name, monster, owner, monster_db.level, monster_db.exhausted_timestamp)
         except ValueError:
             monster = lib.resources.get_monster(monster)
             if monster is None:
@@ -421,6 +417,9 @@ class GroupCog(commands.Cog):
     @group_main_command.command()
     async def add(self, ctx, groups, monsters):
 
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+        chosen_db = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
+
         groups_id = []
         for group_id in groups.split():
             try:
@@ -456,13 +455,19 @@ class GroupCog(commands.Cog):
         for group_id in groups_id:
             group_db = db.Group.get(group_id)
 
+            if not await lib.checks.group_allowed(ctx, group_id):
+                continue
+            
             for monster_id in monsters_id:
                 monster = db.Monster.get(monster_id)
                 group_monster = db.GroupMonster.get(monster_id, group_id)
                 if group_monster is not None:
                     await ctx.message.channel.send(f'Monster ``{monster.name}#{monster.id}`` is already in group ``{group_db.name}#{group_db.id}``.')
                     continue
-
+                if chosen_db.group_id == group_id and len(db.GroupMonster.get_by_group(group_id)) > 9:
+                    await ctx.message.channel.send(f'Group {group_id} is your chosen group and already at 10 monsters.')
+                    continue
+                
                 group_monsters_db = db.GroupMonster.get_by_group(group_id)
                 index = len(group_monsters_db)
 
