@@ -240,6 +240,7 @@ class MonsterCog(commands.Cog):
             await message.edit(embed=embed)
 
             db.Monster.change_owner(given_id, receiver_db.id)
+            db.GroupMonster.remove_by_monster(given_id)
 
 
     @commands.command()
@@ -299,6 +300,7 @@ class MonsterCog(commands.Cog):
             await message.edit(embed=embed)
 
             db.Monster.change_owner(given_id, user_db.id)
+            db.GroupMonster.remove_by_monster(given_id)
 
 
     @commands.command()
@@ -383,9 +385,11 @@ class MonsterCog(commands.Cog):
 
             owner_id = db.User.get_by_member(ctx.guild.id, owner.id).id
             db.Monster.change_owner(given_id, owner_id)
+            db.GroupMonster.remove_by_monster(given_id)
 
             owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
             db.Monster.change_owner(taken_id, owner_id)
+            db.GroupMonster.remove_by_monster(given_id)
 
 
 

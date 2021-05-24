@@ -170,6 +170,7 @@ class Guild:
         cur = conn.cursor()
         command = ('''DELETE FROM guilds WHERE id = %s''')
         cur.execute(command, (id,))
+        conn.commit()
         cur.close()
 
 
@@ -296,6 +297,7 @@ class User:
         cur = conn.cursor()
         command = '''DELETE FROM users WHERE user_id = %s AND guild_id = %s'''
         cur.execute(command, (id, guild_id))
+        conn.commit()
         cur.close()
 
 
@@ -469,6 +471,7 @@ class Group:
         cur = conn.cursor()
         command = '''DELETE FROM groups WHERE id = %s'''
         cur.execute(command, (id,))
+        conn.commit()
         cur.close()
         
 
@@ -531,13 +534,22 @@ class GroupMonster:
         cur = conn.cursor()
         command = '''DELETE FROM groupMonsters WHERE monster_id = %s AND group_id = %s;'''
         cur.execute(command, (monster_id, group_id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def remove_by_monster(monster_id):
+        cur = conn.cursor()
+        command = '''DELETE FROM groupMonsters WHERE monster_id = %s;'''
+        cur.execute(command, (monster_id, ))
+        conn.commit()
         cur.close()
 
 
 class Chosen:
 
     def __init__(self, row):
-        self.id, self.hp, self.guild_id, self.owner_id, self.monster_id, self.created_timestamp = row
+        self.id, self.guild_id, self.owner_id, self.group_id, self.created_timestamp = row
 
     @staticmethod
     def get(id):
@@ -607,6 +619,7 @@ class Chosen:
         cur = conn.cursor()
         command = '''DELETE FROM chosen WHERE id = %s'''
         cur.execute(command, (id,))
+        conn.commit()
         cur.close()
 
     @staticmethod
@@ -614,6 +627,7 @@ class Chosen:
         cur = conn.cursor()
         command = '''DELETE FROM chosen WHERE owner_id = %s'''
         cur.execute(command, (id,))
+        conn.commit()
         cur.close()
 
 
