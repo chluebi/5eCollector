@@ -415,57 +415,90 @@ class GroupCog(commands.Cog):
 
 
     @group_main_command.command()
-    async def add(self, ctx, group_id: int, monster_id: int):
+    async def add(self, ctx, groups, monsters):
 
-        if not await lib.checks.group_allowed(ctx, group_id):
-            return
+        groups_id = []
+        for group_id in groups.split():
+            try:
+                group_id = int(group_id)
+            except ValueError:
+                continue
+            
+            if not await lib.checks.group_allowed(ctx, group_id):
+                await ctx.message.channel.send(f'Group with id {group_id} not found in your collection')
+                continue
 
-        group_db = db.Group.get(group_id)
+            groups_id.append(group_id)
 
-        monster = db.Monster.get(monster_id)
-        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
-        if monster is None:
-            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
-            return
-        if monster.guild_id != ctx.guild.id or monster.owner_id != user_id:
-            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
-            return
+        monsters_id = []
+        for monster_id in monsters.split():
+            try:
+                monster_id = int(monster_id)
+            except ValueError:
+                continue
+            
+            monster = db.Monster.get(monster_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if monster is None:
+                await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+                continue
+            if monster.guild_id != ctx.guild.id or monster.owner_id != user_id:
+                await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+                continue
 
-        group_monster = db.GroupMonster.get(monster_id, group_id)
-        if group_monster is not None:
-            await ctx.message.channel.send(f'This Monster is already in this group.')
-            return
+            monsters_id.append(monster_id)
 
-        group_monsters_db = db.GroupMonster.get_by_group(group_id)
-        index = len(group_monsters_db)
 
-        db.GroupMonster.create(monster_id, group_id, index)
+        for group_id in groups_id:
+            group_db = db.Group.get(group_id)
 
-        await ctx.message.channel.send(f'Monster ``{monster.name}`` added to group ``{group_db.name}``.')
+            for monster_id in monsters_id:
+                monster = db.Monster.get(monster_id)
+                group_monster = db.GroupMonster.get(monster_id, group_id)
+                if group_monster is not None:
+                    await ctx.message.channel.send(f'Monster ``{monster.name}#{monster.id}`` is already in group ``{group_db.name}#{group_db.id}``.')
+                    continue
+
+                group_monsters_db = db.GroupMonster.get_by_group(group_id)
+                index = len(group_monsters_db)
+
+                db.GroupMonster.create(monster_id, group_id, index)
+
+                await ctx.message.channel.send(f'Monster ``{monster.name}#{monster.id}`` added to group ``{group_db.name}#{group_db.id}``.')
+                await asyncio.sleep(1.5)
         
 
     @group_main_command.command()
-    async def remove(self, ctx, group_id: int, monster_id: int):
+    async def remove(self, ctx, group_id: int, monsters):
 
         if not await lib.checks.group_allowed(ctx, group_id):
             return
 
         group_db = db.Group.get(group_id)
 
-        group_monster = db.GroupMonster.get(monster_id, group_id)
-        if group_monster is None:
-            await ctx.message.channel.send(f'Monster not found in this group.')
-            return
 
-        monster = db.Monster.get(monster_id)
+        for monster_id in monsters.split():
+            try:
+                monster_id = int(monster_id)
+            except ValueError:
+                continue
 
-        db.GroupMonster.remove(monster_id, group_id)
+            group_monster = db.GroupMonster.get(monster_id, group_id)
+            if group_monster is None:
+                await ctx.message.channel.send(f'Monster with id ``{monster_id}`` not found in this group.')
+                continue
 
+            monster = db.Monster.get(monster_id)
+
+            db.GroupMonster.remove(monster_id, group_id)
+
+            
+            await ctx.message.channel.send(f'Monster ``{monster.name}`` removed from group ``{group_db.name}``.')
+            await asyncio.sleep(1.5)
+        
         group_monsters_db = db.GroupMonster.get_by_group(group_id)
         for i, m in enumerate(group_monsters_db):
             db.GroupMonster.change_index(m.monster_id, m.group_id, i)
-
-        await ctx.message.channel.send(f'Monster ``{monster.name}`` removed from group ``{group_db.name}``.')
 
 
     @group_main_command.group(name='change')
