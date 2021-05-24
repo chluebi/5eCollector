@@ -87,9 +87,12 @@ class CombatCog(commands.Cog):
                 await ctx.send(f'You are out of attacks. (Resets in **{lib.time_handle.seconds_to_text(attack_countdown)}**)')
                 return
             else:
-                db.User.attack(ctx.message.author.id, ctx.guild.id,config['game']['combat']['attacks']-1, time.time())
+                db.User.attack(ctx.message.author.id, ctx.guild.id, config['game']['combat']['attacks']-1, time.time())
         else:
-            db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, None)
+            if user_db.attacks == config['game']['combat']['attacks']:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, time.time())
+            else:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, None)
 
         async def send_message():
             await ctx.message.channel.send('\n'.join(messages))

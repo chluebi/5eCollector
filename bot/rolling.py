@@ -30,7 +30,10 @@ class RollCog(commands.Cog):
             else:
                 db.User.roll(ctx.message.author.id, ctx.guild.id, config['game']['rolling']['rolls']-1, time.time())
         else:
-            db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, None)
+            if user_db.rolls == config['game']['rolling']['rolls']:
+                db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, time.time())
+            else:
+                db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, None)
 
         db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+1)
 
@@ -99,7 +102,11 @@ class CatchCog(commands.Cog):
                 else:
                     db.User.catch(user.id, ctx.guild.id, config['game']['rolling']['catches']-1, time.time())
             else:
-                db.User.catch(user.id, ctx.guild.id, user_db.catches-1, None)
+                if user_db.catches == config['game']['rolling']['catches']:
+                    db.User.catch(user.id, ctx.guild.id, user_db.catches-1, time.time())
+                else:
+                    db.User.catch(user.id, ctx.guild.id, user_db.catches-1, None)
+                    
             db.User.set_score(user.id, ctx.guild.id, user_db.score+10)
 
             free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, ctx.message.id)
