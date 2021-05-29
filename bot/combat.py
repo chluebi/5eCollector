@@ -19,48 +19,98 @@ class ChosenCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def chosen(self, ctx, monster_id: int):
+    async def chosen(self, ctx, group_id: int):
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
 
-        monster_db = db.Monster.get(monster_id)
-        if monster_db is None:
-            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+        group_db = db.Group.get(group_id)
+        if group_db is None:
+            await ctx.message.channel.send(f'Group with id {group_id} not found in your collection')
             return
-        #id, name, type, level, exhausted_timestamp, guild_id, owner_id = monster_row
-        if monster_db.guild_id != ctx.guild.id or monster_db.owner_id != user_id:
-            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+        if group_db.guild_id != ctx.guild.id or group_db.owner_id != user_id:
+            await ctx.message.channel.send(f'Group with id {group_id} not found in your collection')
             return
 
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        if len(group_monsters_db) > 10:
+            await ctx.message.channel.send(f'This Group has more than 10 members which means it can\'t become chosen.')
+            return
+            
         owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
         chosen_db = db.Chosen.get_by_owner(ctx.guild.id, owner_id)
         if chosen_db is not None:
-            #id, hp, guild_id, owner_id, old_monster_id, created_timestamp = row
             
             glory = lib.util.get_glory(chosen_db.created_timestamp)
 
             user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
-            #id, user_id, _, score, rolls, roll_timestamp, catches, catch_timestamp = row
-            db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+glory)
 
             await ctx.message.channel.send(f'You have gained {glory} glory with your chosen.')
 
             db.Chosen.remove_by_owner(user_db.id)
 
-            db.Monster.exhaust(chosen_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
-
-            if monster_id == chosen_db.monster_id:
+            if group_id == chosen_db.group_id:
                 return
 
-        if time.time() < monster_db.exhausted_timestamp:
-            delta = monster_db.exhausted_timestamp - time.time()
-            await ctx.message.channel.send(f'The chosen monster is exhausted and will be ready in {lib.time_handle.seconds_to_text(delta)}')
-            return
+        db.Chosen.create(ctx.guild.id, owner_id, group_db.id, time.time())
+        await ctx.message.channel.send(f'``{group_db.name}``#``{group_db.id}`` ascended to become {ctx.message.author.mention}\'s Chosen')
 
-        monster = lib.resources.get_monster(monster_db.type)
-        hp = lib.util.get_hp(monster['hp'], monster_db.level)
 
-        db.Chosen.create(hp, ctx.guild.id, owner_id, monster_db.id, time.time())
-        await ctx.message.channel.send(f'#{monster_db.id} **{monster_db.name}** ascended to become {ctx.message.author.mention}\'s Chosen')
+class Fighter:
+    
+    def __init__(self, monster_db):
+        self.monster_db = monster_db
+        self.monster = lib.resources.get_monster(self.monster_db.type)
+        if self.monster is None:
+            raise Exception(f'Monster of type {self.monster_db.type} not found')
+        self.level = self.monster_db.level
+
+        self.name = self.monster_db.name
+        self.type = self.monster_db.type
+
+        self.cr = self.monster['cr']
+        self.hp = lib.util.get_hp(self.monster['hp'], self.level)
+        self.ac = lib.util.get_ac(self.monster['ac'], self.level)
+
+        self.str = lib.util.get_stat(self.monster, 'str', self.level)
+        self.dex = lib.util.get_stat(self.monster, 'dex', self.level)
+        self.con = lib.util.get_stat(self.monster, 'con', self.level)
+        self.int = lib.util.get_stat(self.monster, 'int', self.level)
+        self.wis = lib.util.get_stat(self.monster, 'wis', self.level)
+        self.cha = lib.util.get_stat(self.monster, 'cha', self.level)
+
+        self.image = self.monster['image']
+
+
+class Group:
+
+    def __init__(self, id, name, monsters_db):
+        self.id = id
+        self.name = name
+        self.fighers = [Fighter(monster_db) for monster_db in monsters_db]
+
+
+class Battle:
+    
+    def __init__(self, defenders, attackers, def_user, att_user, def_user_db, att_user_db):
+        self.round = 0
+        self.history = []
+
+        self.defenders = defenders
+        self.attackers = attackers
+
+        self.def_user = def_user
+        self.att_user = att_user
+
+        self.def_user_db = def_user_db
+        self.att_user_db = att_user_db
+
+    
+    def run(self):
+
+        title = 'Battle'
+        description = '{self.}'
+        embed = discord.Embed(title=title, description=description, url=None)
+
+
 
 
 class CombatCog(commands.Cog):

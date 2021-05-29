@@ -81,11 +81,7 @@ class MonsterCog(commands.Cog):
             user_db = db.User.get(monster_db.owner_id)
             owner = lib.getters.get_user_by_id(user_db.user_id, ctx.guild.members)
 
-            chosen_db = db.Chosen.get_by_monster(monster_db.id)
-            chosen = chosen_db is not None
-            hp = chosen_db.hp if chosen else 0
-
-            embed = lib.embeds.generate_caught_monster_embed(monster_db.name, monster, owner, monster_db.level, monster_db.exhausted_timestamp, chosen=chosen, hp=hp)
+            embed = lib.embeds.generate_caught_monster_embed(monster_db.name, monster, owner, monster_db.level, monster_db.exhausted_timestamp)
         except ValueError:
             monster = lib.resources.get_monster(monster)
             if monster is None:
@@ -145,6 +141,11 @@ class MonsterCog(commands.Cog):
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
     async def combine(self, ctx, monster1: int, monster2: int, monster3: int):
+        
+        if monster1 == monster2 or monster2 == monster3 or monster1 == monster3:
+            await ctx.message.channel.send(f'The monsters have to be three distinct monsters.')
+            return
+
         monsters =  [monster1, monster2, monster3]
         data = []
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
@@ -240,6 +241,7 @@ class MonsterCog(commands.Cog):
             await message.edit(embed=embed)
 
             db.Monster.change_owner(given_id, receiver_db.id)
+            db.GroupMonster.remove_by_monster(given_id)
 
 
     @commands.command()
@@ -299,6 +301,7 @@ class MonsterCog(commands.Cog):
             await message.edit(embed=embed)
 
             db.Monster.change_owner(given_id, user_db.id)
+            db.GroupMonster.remove_by_monster(given_id)
 
 
     @commands.command()
@@ -383,9 +386,11 @@ class MonsterCog(commands.Cog):
 
             owner_id = db.User.get_by_member(ctx.guild.id, owner.id).id
             db.Monster.change_owner(given_id, owner_id)
+            db.GroupMonster.remove_by_monster(given_id)
 
             owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
             db.Monster.change_owner(taken_id, owner_id)
+            db.GroupMonster.remove_by_monster(given_id)
 
 
 
@@ -415,57 +420,100 @@ class GroupCog(commands.Cog):
 
 
     @group_main_command.command()
-    async def add(self, ctx, group_id: int, monster_id: int):
+    async def add(self, ctx, groups, monsters):
 
-        if not await lib.checks.group_allowed(ctx, group_id):
-            return
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+        chosen_db = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
 
-        group_db = db.Group.get(group_id)
+        groups_id = []
+        for group_id in groups.split():
+            try:
+                group_id = int(group_id)
+            except ValueError:
+                continue
+            
+            if not await lib.checks.group_allowed(ctx, group_id):
+                await ctx.message.channel.send(f'Group with id {group_id} not found in your collection')
+                continue
 
-        monster = db.Monster.get(monster_id)
-        user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
-        if monster is None:
-            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
-            return
-        if monster.guild_id != ctx.guild.id or monster.owner_id != user_id:
-            await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
-            return
+            groups_id.append(group_id)
 
-        group_monster = db.GroupMonster.get(monster_id, group_id)
-        if group_monster is not None:
-            await ctx.message.channel.send(f'This Monster is already in this group.')
-            return
+        monsters_id = []
+        for monster_id in monsters.split():
+            try:
+                monster_id = int(monster_id)
+            except ValueError:
+                continue
+            
+            monster = db.Monster.get(monster_id)
+            user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            if monster is None:
+                await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+                continue
+            if monster.guild_id != ctx.guild.id or monster.owner_id != user_id:
+                await ctx.message.channel.send(f'Monster with id {monster_id} not found in your collection')
+                continue
 
-        group_monsters_db = db.GroupMonster.get_by_group(group_id)
-        index = len(group_monsters_db)
+            monsters_id.append(monster_id)
 
-        db.GroupMonster.create(monster_id, group_id, index)
 
-        await ctx.message.channel.send(f'Monster ``{monster.name}`` added to group ``{group_db.name}``.')
+        for group_id in groups_id:
+            group_db = db.Group.get(group_id)
+
+            if not await lib.checks.group_allowed(ctx, group_id):
+                continue
+            
+            for monster_id in monsters_id:
+                monster = db.Monster.get(monster_id)
+                group_monster = db.GroupMonster.get(monster_id, group_id)
+                if group_monster is not None:
+                    await ctx.message.channel.send(f'Monster ``{monster.name}#{monster.id}`` is already in group ``{group_db.name}#{group_db.id}``.')
+                    continue
+                if chosen_db is not None:
+                    if chosen_db.group_id == group_id and len(db.GroupMonster.get_by_group(group_id)) > 9:
+                        await ctx.message.channel.send(f'Group {group_id} is your chosen group and already at 10 monsters.')
+                        continue
+                
+                group_monsters_db = db.GroupMonster.get_by_group(group_id)
+                index = len(group_monsters_db)
+
+                db.GroupMonster.create(monster_id, group_id, index)
+
+                await ctx.message.channel.send(f'Monster ``{monster.name}#{monster.id}`` added to group ``{group_db.name}#{group_db.id}``.')
+                await asyncio.sleep(1.5)
         
 
     @group_main_command.command()
-    async def remove(self, ctx, group_id: int, monster_id: int):
+    async def remove(self, ctx, group_id: int, monsters):
 
         if not await lib.checks.group_allowed(ctx, group_id):
             return
 
         group_db = db.Group.get(group_id)
 
-        group_monster = db.GroupMonster.get(monster_id, group_id)
-        if group_monster is None:
-            await ctx.message.channel.send(f'Monster not found in this group.')
-            return
 
-        monster = db.Monster.get(monster_id)
+        for monster_id in monsters.split():
+            try:
+                monster_id = int(monster_id)
+            except ValueError:
+                continue
 
-        db.GroupMonster.remove(monster_id, group_id)
+            group_monster = db.GroupMonster.get(monster_id, group_id)
+            if group_monster is None:
+                await ctx.message.channel.send(f'Monster with id ``{monster_id}`` not found in this group.')
+                continue
 
+            monster = db.Monster.get(monster_id)
+
+            db.GroupMonster.remove(monster_id, group_id)
+
+            
+            await ctx.message.channel.send(f'Monster ``{monster.name}`` removed from group ``{group_db.name}``.')
+            await asyncio.sleep(1.5)
+        
         group_monsters_db = db.GroupMonster.get_by_group(group_id)
         for i, m in enumerate(group_monsters_db):
             db.GroupMonster.change_index(m.monster_id, m.group_id, i)
-
-        await ctx.message.channel.send(f'Monster ``{monster.name}`` removed from group ``{group_db.name}``.')
 
 
     @group_main_command.group(name='change')

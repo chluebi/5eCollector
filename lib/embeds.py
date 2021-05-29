@@ -50,20 +50,22 @@ Attacks Remaining: {attack_text}
     embed = discord.Embed(title=f'{user} ({ctx.guild})', description=desc)
     embed.set_thumbnail(url=user.avatar_url)
 
-    chosen = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
-    if chosen is not None:
-        monster = db.Monster.get(chosen.monster_id)
+    chosen_db = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
+    if chosen_db is not None:
 
-        text = monster_full_title(monster.id, monster.name, monster.type, monster.level, monster.exhausted_timestamp)
+        group_db = db.Group.get(chosen_db.group_id)
+        group_monsters_db = db.GroupMonster.get_by_group(chosen_db.group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in group_monsters_db]
+        
+        text = ''
+        for monster_db in monsters_db:
+            text += monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp)
+            text += '\n'
 
-        glory = lib.util.get_glory(chosen.created_timestamp)
-
-        text += f' [Glory: {glory}] [HP: {chosen.hp}]'
-            
-        embed.add_field(name='Chosen', value=text)
+        glory = lib.util.get_glory(chosen_db.created_timestamp)
+        embed.add_field(name=f'Chosen: #{chosen_db.group_id} {group_db.name} [Glory: {glory}] [{len(group_monsters_db)} Monsters]', value=text)
 
     
-
     groups = []
     groups_db = db.Group.get_by_owner(ctx.guild.id, user_db.id)
 
@@ -204,19 +206,6 @@ async def user_monsters(ctx, user, options):
         fields[-1] += monster
 
     embed = discord.Embed(title=title)
-
-    
-    chosen = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
-    if chosen is not None:
-        monster = db.Monster.get(chosen.monster_id)
-
-        text = monster_full_title(monster.id, monster.name, monster.type, monster.level, monster.exhausted_timestamp)
-
-        glory = lib.util.get_glory(chosen.created_timestamp)
-
-        text += f' [Glory: {glory}] [HP: {chosen.hp}]'
-            
-        embed.add_field(name='Chosen', value=text)
 
     embeds = [embed]
 
@@ -464,11 +453,9 @@ def generate_monster_embed(monster):
 
     return embed
 
-def generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp, chosen=False, hp=0):
+def generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp):
     stars = ''.join(['★' for i in range(level)])
     title = name + ' [CR: ' + monster['visual_cr'] + f'] [{stars}]'
-    if chosen:
-        title = f'[CHOSEN] [HP: {hp}] ' + title
     description = ', '.join(monster['traits'])
     if name != monster['name']:
         description = monster['name'] + ', ' + description
