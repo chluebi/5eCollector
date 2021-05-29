@@ -91,11 +91,12 @@ def create_tables(conn):
         '''
         CREATE TABLE chosen (
             id SERIAL UNIQUE NOT NULL,
+            HP int,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
             owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
-            group_id bigint REFERENCES groups(id) ON DELETE CASCADE, 
+            monster_id bigint REFERENCES monsters(id) ON DELETE CASCADE, 
             created_timestamp double precision,
-            PRIMARY KEY (id, group_id)
+            PRIMARY KEY (id, monster_id)
         );
         ''',
         '''
@@ -169,7 +170,6 @@ class Guild:
         cur = conn.cursor()
         command = ('''DELETE FROM guilds WHERE id = %s''')
         cur.execute(command, (id,))
-        conn.commit()
         cur.close()
 
 
@@ -296,7 +296,6 @@ class User:
         cur = conn.cursor()
         command = '''DELETE FROM users WHERE user_id = %s AND guild_id = %s'''
         cur.execute(command, (id, guild_id))
-        conn.commit()
         cur.close()
 
 
@@ -470,7 +469,6 @@ class Group:
         cur = conn.cursor()
         command = '''DELETE FROM groups WHERE id = %s'''
         cur.execute(command, (id,))
-        conn.commit()
         cur.close()
         
 
@@ -533,22 +531,13 @@ class GroupMonster:
         cur = conn.cursor()
         command = '''DELETE FROM groupMonsters WHERE monster_id = %s AND group_id = %s;'''
         cur.execute(command, (monster_id, group_id))
-        conn.commit()
-        cur.close()
-
-    @staticmethod
-    def remove_by_monster(monster_id):
-        cur = conn.cursor()
-        command = '''DELETE FROM groupMonsters WHERE monster_id = %s;'''
-        cur.execute(command, (monster_id, ))
-        conn.commit()
         cur.close()
 
 
 class Chosen:
 
     def __init__(self, row):
-        self.id, self.guild_id, self.owner_id, self.group_id, self.created_timestamp = row
+        self.id, self.hp, self.guild_id, self.owner_id, self.monster_id, self.created_timestamp = row
 
     @staticmethod
     def get(id):
@@ -563,9 +552,9 @@ class Chosen:
             return Chosen(row)
 
     @staticmethod
-    def get_by_group(id):
+    def get_by_monster(id):
         cur = conn.cursor()
-        command = '''SELECT * FROM chosen WHERE group_id = %s'''
+        command = '''SELECT * FROM chosen WHERE monster_id = %s'''
         cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
@@ -596,10 +585,20 @@ class Chosen:
             return Chosen(row)
 
     @staticmethod
-    def create(guild_id, owner_id, group_id, created_timestamp):
+    def create(hp, guild_id, owner_id, monster_id, created_timestamp):
         cur = conn.cursor()
-        command = '''INSERT INTO chosen(guild_id, owner_id, group_id, created_timestamp) VALUES (%s, %s, %s, %s);'''
-        cur.execute(command, (guild_id, owner_id, group_id, created_timestamp))
+        command = '''INSERT INTO chosen(hp, guild_id, owner_id, monster_id, created_timestamp) VALUES (%s, %s, %s, %s, %s);'''
+        cur.execute(command, (hp, guild_id, owner_id, monster_id, created_timestamp))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def damage(id, hp):
+        cur = conn.cursor()
+        command = '''UPDATE chosen
+                    SET HP = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (hp, id))
         conn.commit()
         cur.close()
 
@@ -608,7 +607,6 @@ class Chosen:
         cur = conn.cursor()
         command = '''DELETE FROM chosen WHERE id = %s'''
         cur.execute(command, (id,))
-        conn.commit()
         cur.close()
 
     @staticmethod
@@ -616,7 +614,6 @@ class Chosen:
         cur = conn.cursor()
         command = '''DELETE FROM chosen WHERE owner_id = %s'''
         cur.execute(command, (id,))
-        conn.commit()
         cur.close()
 
 
