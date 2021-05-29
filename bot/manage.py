@@ -146,6 +146,11 @@ class MonsterCog(commands.Cog):
     @commands.check(lib.checks.user_exists_check)
     async def combine(self, ctx, monster1: int, monster2: int, monster3: int):
         monsters =  [monster1, monster2, monster3]
+
+        if monster1 == monster2 or monster2 == monster3 or monster1 == monster3:
+            await ctx.message.channel.send(f'The monsters have to be three distinct monsters.')
+            return
+            
         data = []
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
         
