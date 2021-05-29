@@ -71,6 +71,97 @@ class CombatCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    async def ex_attack(self, ctx, target, group_id, stat):
+
+        target = lib.getters.get_user(target, ctx.guild.members)
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+
+        if target is None:
+            await ctx.message.channel.send(f'User *{target}* not found.')
+            return
+
+        if user_db.attacks < 1:
+            attack_countdown = (user_db.attack_timestamp + config['game']['combat']['attack_cooldown']) - time.time()
+            if attack_countdown > 0:
+                await ctx.send(f'You are out of attacks. (Resets in **{lib.time_handle.seconds_to_text(attack_countdown)}**)')
+                return
+            else:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, config['game']['combat']['attacks']-1, time.time())
+        else:
+            if user_db.attacks == config['game']['combat']['attacks']:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, time.time())
+            else:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, None)
+
+
+        stat = stat.lower()
+        if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
+            await ctx.message.channel.send(f'Stat *{stat}* is not a valid stat.')
+            return
+
+        target_db = db.User.get_by_member(ctx.guild.id, target.id)
+        chosen_db = db.Chosen.get_by_owner(ctx.guild.id, target_db.id)
+        if chosen_db is None:
+            await ctx.message.channel.send(f'User does not have a Chosen group at the moment')
+            return
+
+        group_db = db.Group.get(chosen_db.group_id)
+        group_monsters_db = db.GroupMonster.get_by_group(chosen_db.group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+        defenders = Group(group_db.id, group_db.name, monsters_db)
+
+
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+
+        if len(group_monsters_db) < 1:
+            await ctx.message.channel.send(f'No monsters in group with group-id ``{group_id}`` found.')
+            return
+
+        if len(group_monsters_db) > 10:
+            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
+            return
+
+        group_db = db.Group.get(group_id)
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+        attackers = Group(group_db.id, group_db.name, monsters_db)
+
+        battle = Battle(ctx, stat, defenders, attackers, user_db, target_db)
+
+
+        attack_win = await battle.run()
+
+        if attack_win:
+            db.Chosen.remove(chosen_db.id)
+            #db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+
+            glory = lib.util.get_glory(chosen_db.created_timestamp)
+
+        await battle.message.add_reaction('✔️')
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == battle.message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+        else:
+            summary_msg =''
+            formatted_message = ['']
+            for m in battle.history:
+                if len(formatted_message[-1]) + len(m) > 1800:
+                    formatted_message.append(m)
+                else:
+                    formatted_message[-1] += m + '\n'
+
+            messages = []
+            for m in formatted_message:
+                messages.append(await ctx.message.channel.send(m))
+
+
+    @commands.command()
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
     async def attack(self, ctx, target, group_id, stat):
 
         target = lib.getters.get_user(target, ctx.guild.members)

@@ -100,6 +100,13 @@ def load_monsters():
                 for tag in monster['damageTags']:
                     monster_traits.append(damage_full[tag])
 
+            if 'spellcasting' in monster:
+                if 'type' in monster:
+                    if 'type' in monster['type']:
+                        if monster['type']['type'] == 'humanoid':
+                            if 'tags' in monster['type']:
+                                if 'any race' in monster['type']['tags']:
+                                    monster_traits.append('spellcaster')
 
             for trait in monster_traits:
                 if trait not in traits:
@@ -131,10 +138,12 @@ def load_monsters():
             continue
 
     l = sorted(list(traits.items()), key=lambda x: x[1], reverse=True)
+    for trait, amount in l:
+        print(trait, amount)
 
     l = sorted([(monster['name'], monster['traits']) for _, monster in monsters.items()], key=lambda x: len(x[1]), reverse=True)
     for monster, traits in l:
-        pass
+        print(monster, traits)
     
     return monsters
 
