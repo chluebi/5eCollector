@@ -57,27 +57,41 @@ class ChosenCog(commands.Cog):
 class Fighter:
     
     def __init__(self, monster_db):
+        self.alive = True
+
         self.monster_db = monster_db
         self.monster = lib.resources.get_monster(self.monster_db.type)
         if self.monster is None:
             raise Exception(f'Monster of type {self.monster_db.type} not found')
         self.level = self.monster_db.level
 
+        self.id = self.monster_db.id
         self.name = self.monster_db.name
         self.type = self.monster_db.type
 
         self.cr = self.monster['cr']
         self.hp = lib.util.get_hp(self.monster['hp'], self.level)
+        self.max_hp = self.hp
         self.ac = lib.util.get_ac(self.monster['ac'], self.level)
 
-        self.str = lib.util.get_stat(self.monster, 'str', self.level)
-        self.dex = lib.util.get_stat(self.monster, 'dex', self.level)
-        self.con = lib.util.get_stat(self.monster, 'con', self.level)
-        self.int = lib.util.get_stat(self.monster, 'int', self.level)
-        self.wis = lib.util.get_stat(self.monster, 'wis', self.level)
-        self.cha = lib.util.get_stat(self.monster, 'cha', self.level)
+        self.stats = {
+                    'str': lib.util.get_stat(self.monster, 'str', self.level),
+                    'dex': lib.util.get_stat(self.monster, 'dex', self.level),
+                    'con': lib.util.get_stat(self.monster, 'con', self.level),
+                    'int': lib.util.get_stat(self.monster, 'int', self.level),
+                    'wis': lib.util.get_stat(self.monster, 'wis', self.level),
+                    'cha': lib.util.get_stat(self.monster, 'cha', self.level)
+                    }
+
+        self.mods = {key: lib.util.get_modifier(self.monster, key, self.level) for key, value in self.stats.items()}
 
         self.image = self.monster['image']
+
+    def __str__(self):
+        if self.alive:
+            return f'#{self.id} {self.name} [{self.hp}/{self.max_hp}]'
+        else:
+            return f'#{self.id} {self.name} [{self.hp}/{self.max_hp}] 💀'
 
 
 class Group:
@@ -85,31 +99,113 @@ class Group:
     def __init__(self, id, name, monsters_db):
         self.id = id
         self.name = name
-        self.fighers = [Fighter(monster_db) for monster_db in monsters_db]
+        self.fighters = [Fighter(monster_db) for monster_db in monsters_db]
+
+    def __str__(self):
+        return f'#{self.id} {self.name}'
+
+    def alive(self):
+        return True in [f.alive for f in self.fighters]
+
+    def next_alive(self):
+        for fighter in self.fighters[::-1]:
+            if fighter.alive:
+                return fighter
+        return None
 
 
 class Battle:
     
-    def __init__(self, defenders, attackers, def_user, att_user, def_user_db, att_user_db):
+    def __init__(self, ctx, stat, defenders, attackers, def_user_db, att_user_db):
         self.round = 0
         self.history = []
+
+        self.stat = stat
+        self.ctx = ctx
 
         self.defenders = defenders
         self.attackers = attackers
 
-        self.def_user = def_user
-        self.att_user = att_user
-
         self.def_user_db = def_user_db
         self.att_user_db = att_user_db
+    
+    def damage(self, attacker, target, damage):
+        target.hp -= damage
+
+        if target.hp < 1:
+            target.alive = False
+
+    def attack(self, attacker, target):
+        
+        base_attack_roll = random.randint(1, 20)
+        attack_roll = base_attack_roll + attacker.mods[self.stat]
+        defense_roll = target.ac + 1 - self.round
+
+        damage = 0
+
+        if attack_roll <= defense_roll:
+            self.history.append(f'**{attacker}** ({base_attack_roll}+{attacker.mods[self.stat]}) misses **{target}** (AC: {defense_roll})')
+            return
+
+        base_attack_roll = random.randint(1, 20)
+        attack_roll = base_attack_roll + attacker.mods[self.stat]
+
+        self.history.append(f'**{attacker}** (({base_attack_roll}+{attacker.mods[self.stat]})) hits **{target}** (AC: {defense_roll}) for **({base_attack_roll}+{attacker.mods[self.stat]})** damage')
+        
+        self.damage(attacker, target, attack_roll)
+        return
 
     
-    def run(self):
+    async def run(self):
+        title = 'Battle'
+        description = f'**{self.defenders}** vs **{self.attackers}**'
+        embed = discord.Embed(title=title, description=description)
+
+        embed.add_field(name=self.defenders, value='\n'.join([str(f) for f in self.defenders.fighters]))
+        embed.add_field(name=self.attackers, value='\n'.join([str(f) for f in self.attackers.fighters]))
+
+        embed.set_footer(text='In Progress 🕑')
+
+        self.message = await self.ctx.message.channel.send(embed=embed)
+
+        while True:
+            self.round += 1
+            self.history.append(f'--- Round {self.round} ---')
+
+            for defender in self.defenders.fighters:
+                target = self.attackers.next_alive()
+                if target is None:
+                    break
+
+                self.attack(defender, target)
+
+            for attacker in self.attackers.fighters:
+                target = self.defenders.next_alive()
+                if target is None:
+                    break
+
+                self.attack(attacker, target)
+
+            if not self.attackers.alive() or not self.defenders.alive():
+                break
+        
+        if not self.defenders.alive():
+            self.history.append('The attackers have won!')
+        else:
+            self.history.append('The chosen defenders have won!')
 
         title = 'Battle'
-        description = '{self.}'
-        embed = discord.Embed(title=title, description=description, url=None)
+        description = f'**{self.defenders}** vs **{self.attackers}**'
+        embed = discord.Embed(title=title, description=description)
 
+        embed.add_field(name=self.defenders, value='\n'.join([str(f) for f in self.defenders.fighters]))
+        embed.add_field(name=self.attackers, value='\n'.join([str(f) for f in self.attackers.fighters]))
+
+        embed.set_footer(text='Finished, React for Full Summary')
+
+        await self.message.edit(embed=embed)
+
+        return not self.defenders.alive()
 
 
 
@@ -117,6 +213,97 @@ class CombatCog(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command()
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def ex_attack(self, ctx, target, group_id, stat):
+
+        target = lib.getters.get_user(target, ctx.guild.members)
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+
+        if target is None:
+            await ctx.message.channel.send(f'User *{target}* not found.')
+            return
+
+        if user_db.attacks < 1:
+            attack_countdown = (user_db.attack_timestamp + config['game']['combat']['attack_cooldown']) - time.time()
+            if attack_countdown > 0:
+                await ctx.send(f'You are out of attacks. (Resets in **{lib.time_handle.seconds_to_text(attack_countdown)}**)')
+                return
+            else:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, config['game']['combat']['attacks']-1, time.time())
+        else:
+            if user_db.attacks == config['game']['combat']['attacks']:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, time.time())
+            else:
+                db.User.attack(ctx.message.author.id, ctx.guild.id, user_db.attacks-1, None)
+
+
+        stat = stat.lower()
+        if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
+            await ctx.message.channel.send(f'Stat *{stat}* is not a valid stat.')
+            return
+
+        target_db = db.User.get_by_member(ctx.guild.id, target.id)
+        chosen_db = db.Chosen.get_by_owner(ctx.guild.id, target_db.id)
+        if chosen_db is None:
+            await ctx.message.channel.send(f'User does not have a Chosen group at the moment')
+            return
+
+        group_db = db.Group.get(chosen_db.group_id)
+        group_monsters_db = db.GroupMonster.get_by_group(chosen_db.group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+        defenders = Group(group_db.id, group_db.name, monsters_db)
+
+
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+
+        if len(group_monsters_db) < 1:
+            await ctx.message.channel.send(f'No monsters in group with group-id ``{group_id}`` found.')
+            return
+
+        if len(group_monsters_db) > 10:
+            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
+            return
+
+        group_db = db.Group.get(group_id)
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+        attackers = Group(group_db.id, group_db.name, monsters_db)
+
+        battle = Battle(ctx, stat, defenders, attackers, user_db, target_db)
+
+
+        attack_win = await battle.run()
+
+        if attack_win:
+            db.Chosen.remove(chosen_db.id)
+            #db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+
+            glory = lib.util.get_glory(chosen_db.created_timestamp)
+
+        await battle.message.add_reaction('✔️')
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == battle.message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+        else:
+            summary_msg =''
+            formatted_message = ['']
+            for m in battle.history:
+                if len(formatted_message[-1]) + len(m) > 1800:
+                    formatted_message.append(m)
+                else:
+                    formatted_message[-1] += m + '\n'
+
+            messages = []
+            for m in formatted_message:
+                messages.append(await ctx.message.channel.send(m))
+
 
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)

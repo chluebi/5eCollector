@@ -361,9 +361,9 @@ async def user_groups(ctx, user, options):
 
 async def group_embed(ctx, group_db, group_monsters_db):
     if group_db.favorite:
-        title = f'Group: #{group_db.id} {group_db.name} [Favorite]' 
+        title = f'Group: #{group_db.id} {group_db.name} [{len(group_monsters_db)} Monsters] [Favorite]' 
     else:
-        title = f'Group: #{group_db.id} {group_db.name}'
+        title = f'Group: #{group_db.id} {group_db.name} [{len(group_monsters_db)} Monsters]'
     embed = discord.Embed(title=title, description=group_db.description)
 
     if len(group_monsters_db) > 0:
