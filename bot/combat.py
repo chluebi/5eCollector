@@ -58,6 +58,7 @@ class Fighter:
     
     def __init__(self, monster_db):
         self.alive = True
+        self.action = None
 
         self.monster_db = monster_db
         self.monster = lib.resources.get_monster(self.monster_db.type)
@@ -88,10 +89,17 @@ class Fighter:
         self.image = self.monster['image']
 
     def __str__(self):
-        if self.alive:
-            return f'#{self.id} {self.name} [{self.hp}/{self.max_hp}]'
-        else:
-            return f'#{self.id} {self.name} [{self.hp}/{self.max_hp}] 💀'
+        s = ''
+        if self.action == 'attack':
+            s += '🗡️ '
+        if self.action == 'defend':
+            s += '🛡️ '
+
+        s += f'#{self.id} {self.name} [{self.hp}/{self.max_hp}]'
+        if not self.alive:
+            s += ' 💀'
+
+        return s
 
 
 class Group:
@@ -128,6 +136,28 @@ class Battle:
 
         self.def_user_db = def_user_db
         self.att_user_db = att_user_db
+
+    def start_embed(self):
+        title = 'Battle'
+        description = f'**{self.defenders}** vs **{self.attackers}**'
+        embed = discord.Embed(title=title, description=description)
+
+        value = f'AC reduced by **{self.round-1}**\n'
+        value += f'Damage Multiplier: **{self.round}**' 
+        embed.add_field(name=f'Round {self.round}', value=value, inline=False)
+
+        embed.add_field(name=f'Attackers: {self.attackers}', value='\n'.join([str(f) for f in self.attackers.fighters]))
+        embed.add_field(name=f'Defenders: {self.defenders}', value='\n'.join([str(f) for f in self.defenders.fighters]))
+        
+        embed.set_footer(text='In Progress 🕑')
+        return embed
+
+    async def message(self, content):
+        self.history.append(content)
+        embed = self.start_embed()
+        embed.add_field(name='Current', value=content, inline=False)
+        await self.start_message.edit(embed=embed)
+        await asyncio.sleep(1.5)
     
     def damage(self, attacker, target, damage):
         target.hp -= damage
@@ -136,6 +166,9 @@ class Battle:
             target.alive = False
 
     def attack(self, attacker, target):
+
+        attacker.action = 'attack'
+        target.action = 'defend'
         
         base_attack_roll = random.randint(1, 20)
         attack_roll = base_attack_roll + attacker.mods[self.stat]
@@ -143,48 +176,61 @@ class Battle:
 
         damage = 0
 
+        info = ''
+
         if attack_roll <= defense_roll:
-            self.history.append(f'**{attacker}** ({base_attack_roll}+{attacker.mods[self.stat]}) misses **{target}** (AC: {defense_roll})')
-            return
+            info = f'(⚔️{base_attack_roll}+{attacker.mods[self.stat]}) {attacker} \n 🛡️ \n **(🔰{defense_roll})** {target} '
+            return info
 
-        base_attack_roll = random.randint(1, 20)
-        attack_roll = base_attack_roll + attacker.mods[self.stat]
+        base_damage_roll = random.randint(1, 20) * self.round
+        damage_mod = attacker.mods[self.stat] * self.round
+        damage_roll = base_damage_roll + damage_mod
 
-        self.history.append(f'**{attacker}** (({base_attack_roll}+{attacker.mods[self.stat]})) hits **{target}** (AC: {defense_roll}) for **({base_attack_roll}+{attacker.mods[self.stat]})** damage')
+        info = f'**(⚔️{base_attack_roll}+{attacker.mods[self.stat]})** {attacker}  \n 🗡️ \n (🔰{defense_roll}) {target} \n Damage: **(⚔️{base_damage_roll}+{damage_mod})**'
         
-        self.damage(attacker, target, attack_roll)
-        return
+        self.damage(attacker, target, damage_roll)
+        return info
 
     
     async def run(self):
-        title = 'Battle'
-        description = f'**{self.defenders}** vs **{self.attackers}**'
-        embed = discord.Embed(title=title, description=description)
+        embed = self.start_embed()
 
-        embed.add_field(name=self.defenders, value='\n'.join([str(f) for f in self.defenders.fighters]))
-        embed.add_field(name=self.attackers, value='\n'.join([str(f) for f in self.attackers.fighters]))
-
-        embed.set_footer(text='In Progress 🕑')
-
-        self.message = await self.ctx.message.channel.send(embed=embed)
+        self.start_message = await self.ctx.message.channel.send(embed=embed)
 
         while True:
             self.round += 1
-            self.history.append(f'--- Round {self.round} ---')
+            await self.message(f'--- Round {self.round} ---')
 
             for defender in self.defenders.fighters:
+
+                if not defender.alive:
+                    continue
+
                 target = self.attackers.next_alive()
                 if target is None:
                     break
 
-                self.attack(defender, target)
+                info = self.attack(defender, target)
+                await self.message(info)
+
+                defender.action = None
+                target.action = None
+
 
             for attacker in self.attackers.fighters:
+
+                if not attacker.alive:
+                    continue
+
                 target = self.defenders.next_alive()
                 if target is None:
                     break
 
-                self.attack(attacker, target)
+                info = self.attack(attacker, target)
+                await self.message(info)
+
+                attacker.action = None
+                target.action = None
 
             if not self.attackers.alive() or not self.defenders.alive():
                 break
@@ -203,7 +249,7 @@ class Battle:
 
         embed.set_footer(text='Finished, React for Full Summary')
 
-        await self.message.edit(embed=embed)
+        await self.start_message.edit(embed=embed)
 
         return not self.defenders.alive()
 
@@ -283,9 +329,9 @@ class CombatCog(commands.Cog):
 
             glory = lib.util.get_glory(chosen_db.created_timestamp)
 
-        await battle.message.add_reaction('✔️')
+        await battle.start_message.add_reaction('✔️')
         def check(reaction, user):
-            return not user.bot and reaction.message.id == battle.message.id and str(reaction.emoji) == '✔️'
+            return not user.bot and reaction.message.id == battle.start_message.id and str(reaction.emoji) == '✔️'
 
         try:
             await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
