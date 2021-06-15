@@ -58,27 +58,7 @@ def load_monsters():
 
             source = monster['source']
 
-            allowed = ['beast', 'monstrosity', 'dragon', 'undead', 'demon', 'aberration', 'elemental']
-            allowed += ['shapechanger', 'construct', 'devil', 'giant', 'plant', 'fey', 'elf']
-            allowed += ['yuan-ti', 'yugoloth', 'goblinoid', 'orc', 'gith', 'ooze', 'dwarf', 'celestial']
-
             monster_traits = []
-
-            if type(monster['type']) is dict:
-                if 'type' in monster['type']:
-                    if monster['type']['type'] in allowed:
-                        monster_traits.append(monster['type']['type'])
-
-                for tag in monster['type']['tags']:
-                    if tag in allowed:
-                        monster_traits.append(tag)
-            else:
-                if monster['type'] in allowed:
-                    monster_traits.append(monster['type'])
-
-            if 'environment' in monster:
-                for env in monster['environment'][:3]:
-                    monster_traits.append(env)
 
             damage_full = {
                 "A": "acid",
@@ -93,12 +73,42 @@ def load_monsters():
                 "Y": "psychic",
                 "R": "radiant",
                 "S": "slasher",
-                "T": "thunder",
+                "T": "thunder"
             }
 
             if 'damageTags' in monster:
+                if 'B' in monster['damageTags']:
+                    monster_traits.append(damage_full['B'])
+                elif 'S' in monster['damageTags']:
+                    monster_traits.append(damage_full['S'])
+                else:
+                    monster_traits.append(damage_full['P'])
+
+                
+            allowed = ['beast', 'monstrosity', 'dragon', 'undead', 'demon', 'aberration', 'elemental']
+            allowed += ['shapechanger', 'construct', 'devil', 'giant', 'plant', 'fey', 'elf']
+            allowed += ['yuan-ti', 'yugoloth', 'goblinoid', 'orc', 'gith', 'ooze', 'dwarf', 'celestial']
+
+            if type(monster['type']) is dict:
+                if 'type' in monster['type']:
+                    if monster['type']['type'] in allowed:
+                        monster_traits.append(monster['type']['type'])
+
+                for tag in monster['type']['tags']:
+                    if tag in allowed:
+                        monster_traits.append(tag)
+            else:
+                if monster['type'] in allowed:
+                    monster_traits.append(monster['type'])
+
+            if 'damageTags' in monster:
                 for tag in monster['damageTags']:
-                    monster_traits.append(damage_full[tag])
+                    if tag not in ['B', 'P', 'S']:
+                        monster_traits.append(damage_full[tag])
+
+            if 'environment' in monster:
+                for env in monster['environment'][:int(max(3, cr**(2/5) // 1))]:
+                    monster_traits.append(env)
 
             if 'spellcasting' in monster:
                 if 'type' in monster:
@@ -114,7 +124,7 @@ def load_monsters():
                 else:
                     traits[trait] += 1
 
-            monster_traits = monster_traits[:max(3, int(cr//3))]
+            monster_traits = monster_traits[:int(max(3, cr**(3/4)//1))]
 
             monsters[monster['name']] = {
                 'name': monster['name'],
