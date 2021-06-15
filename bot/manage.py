@@ -55,7 +55,8 @@ class UserCog(commands.Cog):
     @commands.check(lib.checks.user_exists_check)
     async def monsters_main_command(self, ctx):
         pass
-    
+
+
 class MonsterCog(commands.Cog):
     
     def __init__(self, bot):
@@ -393,6 +394,24 @@ class MonsterCog(commands.Cog):
             db.GroupMonster.remove_by_monster(given_id)
 
 
+class TraitCog(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name='traits')
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def all_traits(self, ctx, *options):
+        await lib.embeds.all_traits(ctx, options)
+
+    @commands.command(name='trait')
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def trait_info(self, ctx):
+        pass
+
+
 
 class GroupCog(commands.Cog):
 
@@ -602,4 +621,5 @@ class GroupCog(commands.Cog):
 def setup(bot):
     bot.add_cog(UserCog(bot))
     bot.add_cog(MonsterCog(bot))
+    bot.add_cog(TraitCog(bot))
     bot.add_cog(GroupCog(bot))

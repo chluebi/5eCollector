@@ -239,6 +239,67 @@ async def user_monsters(ctx, user, options):
         await ctx.message.channel.send(embed=e)
 
 
+async def all_traits(ctx, options):
+    sort = ''
+
+    traits_resources = lib.resources.traits
+
+    for o in options:
+        if o.startswith('sort:') or o.startswith('s'):
+            o_list = o.split(':')
+            sort = ':'.join(o_list[1:])
+            break
+
+    reverse = False if ('-' in options or 'r' in options) else True
+
+    if sort in ['monsters']:
+        traits = sorted(traits_resources, key=lambda x: x[1], reverse=reverse)
+    else:
+        traits = sorted(traits_resources, key=lambda x: x[0], reverse=not reverse)
+
+    filters = []
+    for o in options:
+        if o.startswith('filter:') or o.startswith('f:'):
+            o_list = o.split(':')
+            if len(o_list) > 1:
+                filters.append(':'.join(o_list[1:]))
+
+    filtered_traits = []
+    for trait, amount in traits:
+        text = f'**{trait}**: {amount} monsters\n'
+
+        filtered = True
+        for f in filters:
+            filtered = filtered and f.lower() in text.lower()
+
+        if filtered:
+            filtered_traits.append(text)
+
+    fields = ['']
+    for trait in filtered_traits:
+        if len(fields[-1]) + len(trait) > 1000:
+            fields.append('')
+        fields[-1] += trait
+
+
+    embed = discord.Embed(title='All Traits')
+
+    embeds = [embed]
+
+    for i, field in enumerate(fields, 1):
+        if len(embeds[-1].fields) > 3:
+            embeds.append(discord.Embed(title=f'All Traits', description=f'page {len(embeds) + 1}'))
+
+        if len(field) < 1:
+            field = '[empty]'
+
+        embeds[-1].add_field(name=f'Section {i}', value=field, inline=False)
+
+    for e in embeds:
+        await ctx.message.channel.send(embed=e)
+
+    
+
 async def user_groups(ctx, user, options):
     user_db = db.User.get_by_member(ctx.guild.id, user.id)
     groups_db = db.Group.get_by_owner(ctx.guild.id, user_db.id)

@@ -147,18 +147,18 @@ def load_monsters():
         except Exception as e:
             continue
 
-    l = sorted(list(traits.items()), key=lambda x: x[1], reverse=True)
-    for trait, amount in l:
+    traits = sorted(list(traits.items()), key=lambda x: x[1], reverse=True)
+    for trait, amount in traits:
         print(trait, amount)
 
     l = sorted([(monster['name'], monster['traits']) for _, monster in monsters.items()], key=lambda x: len(x[1]), reverse=True)
-    for monster, traits in l:
-        print(monster, traits)
+    for monster, monster_traits in l:
+        print(monster, monster_traits)
     
-    return monsters
+    return monsters, traits
 
 
-monsters = load_monsters()
+monsters, traits = load_monsters()
 
 
 def random_monster():
