@@ -180,13 +180,19 @@ async def user_monsters(ctx, user, options):
     monsters_db.sort(key=lambda x: x[1][1], reverse=reverse)
 
     filters = []
+    trait_filters = []
     for o in options:
-        if o.startswith('filter:') or o.startswith('f'):
+        if o.startswith('filter:') or o.startswith('f:'):
             o_list = o.split(':')
             if len(o_list) > 1:
                 filters.append(':'.join(o_list[1:]))
+        elif o.startswith('trait:') or o.startswith('t:'):
+            o_list = o.split(':')
+            if len(o_list) > 1:
+                trait_filters.append(':'.join(o_list[1:]))
 
     for monster_db, (stat_name, stat) in monsters_db:
+        monster = lib.resources.get_monster(monster_db.type)
         text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
         if additional_stat:
             text = text[:-1]
@@ -194,7 +200,14 @@ async def user_monsters(ctx, user, options):
 
         filtered = True
         for f in filters:
-            filtered = True and f.lower() in text.lower()
+            filtered = filtered and f.lower() in text.lower()
+
+        for t in trait_filters:
+            has_trait = False
+            for trait in monster['traits']:
+                if t.lower() == trait.lower():
+                    has_trait = True
+            filtered = filtered and has_trait
 
         if filtered:
             monsters.append(text)
