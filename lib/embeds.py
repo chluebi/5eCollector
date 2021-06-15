@@ -109,6 +109,104 @@ Attacks Remaining: {attack_text}
     for e in embeds:
         await ctx.message.channel.send(embed=e)
 
+
+async def all_monsters(ctx, options):
+    sort = ''
+
+    monsters_resources = lib.resources.monsters.items()
+
+    for o in options:
+        if o.startswith('sort:') or o.startswith('s'):
+            o_list = o.split(':')
+            sort = ':'.join(o_list[1:])
+            break
+
+    reverse = False if ('-' in options or 'r' in options) else True
+
+    monsters = []
+    
+    if sort in ['level', 'hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha', 'cr']:
+        if sort in ['hp']:
+            monsters = [(m, ('hp', m['hp'])) for n, m in monsters_resources]
+            additional_stat = True
+            reverse = reverse
+        elif sort in ['ac']:
+            monsters = [(m, ('ac', m['ac'])) for n, m in monsters_resources]
+            additional_stat = True
+            reverse = reverse
+        else:
+            monsters = [(m, (sort, m[sort])) for n, m in monsters_resources]
+            additional_stat = sort != 'cr'
+            reverse = reverse
+    else:
+        monsters = [(m, ('type', m['name'])) for n, m in monsters_resources]
+        additional_stat = False
+        reverse = not reverse
+        title = f'Monsters (sorted alphabetically)'
+
+    monsters.sort(key=lambda x: x[1][1], reverse=reverse)
+
+    filters = []
+    trait_filters = []
+    for o in options:
+        if o.startswith('filter:') or o.startswith('f:'):
+            o_list = o.split(':')
+            if len(o_list) > 1:
+                filters.append(':'.join(o_list[1:]))
+        elif o.startswith('trait:') or o.startswith('t:'):
+            o_list = o.split(':')
+            if len(o_list) > 1:
+                trait_filters.append(':'.join(o_list[1:]))
+
+    filtered_monsters = []
+    for m, (stat_name, stat) in monsters:
+        name = m['name']
+        cr = m['visual_cr']
+        text = f'**{name}** [Cr: {cr}] \n'
+
+        if additional_stat:
+            text = text[:-1]
+            text += f' **[{stat_name}: {stat}]** \n'
+
+        filtered = True
+        for f in filters:
+            filtered = filtered and f.lower() in text.lower()
+
+        for t in trait_filters:
+            has_trait = False
+            for trait in m['traits']:
+                if t.lower() == trait.lower():
+                    has_trait = True
+            filtered = filtered and has_trait
+
+        if filtered:
+            filtered_monsters.append(text)
+
+
+    fields = ['']
+    for monster in filtered_monsters:
+        if len(fields[-1]) + len(monster) > 1000:
+            fields.append('')
+        fields[-1] += monster
+
+
+    embed = discord.Embed(title='All Monsters')
+
+    embeds = [embed]
+
+    for i, field in enumerate(fields, 1):
+        if len(embeds[-1].fields) > 3:
+            embeds.append(discord.Embed(title=f'All Monsters', description=f'page {len(embeds) + 1}'))
+
+        if len(field) < 1:
+            field = '[empty]'
+
+        embeds[-1].add_field(name=f'Section {i}', value=field, inline=False)
+
+    for e in embeds:
+        await ctx.message.channel.send(embed=e)
+
+
 async def user_monsters(ctx, user, options):
     user_db = db.User.get_by_member(ctx.guild.id, user.id)
 

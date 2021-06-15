@@ -50,17 +50,18 @@ class UserCog(commands.Cog):
         db.User.remove(ctx.message.author.id, ctx.guild.id)
         await ctx.message.channel.send('All your data on this server has been deleted')
 
-    @commands.group(name='monsters')
-    @commands.check(lib.checks.guild_exists_check)
-    @commands.check(lib.checks.user_exists_check)
-    async def monsters_main_command(self, ctx):
-        pass
-
 
 class MonsterCog(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command(name='monsters')
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    async def all_monsters(self, ctx, *options):
+        await lib.embeds.all_monsters(ctx, options)
+
 
     @commands.command(aliases=['monster'])
     @commands.check(lib.checks.guild_exists_check)
