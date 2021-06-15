@@ -190,7 +190,7 @@ async def all_monsters(ctx, options):
         fields[-1] += monster
 
 
-    embed = discord.Embed(title='All Monsters')
+    embed = discord.Embed(title=f'All Monsters ({len(filtered_monsters)})')
 
     embeds = [embed]
 
@@ -316,6 +316,7 @@ async def user_monsters(ctx, user, options):
             fields.append('')
         fields[-1] += monster
 
+    title += f' ({len(monsters)})'
     embed = discord.Embed(title=title)
 
     embeds = [embed]
@@ -380,7 +381,7 @@ async def all_traits(ctx, options):
         fields[-1] += trait
 
 
-    embed = discord.Embed(title='All Traits')
+    embed = discord.Embed(title=f'All Traits ({len(filtered_traits)})')
 
     embeds = [embed]
 
