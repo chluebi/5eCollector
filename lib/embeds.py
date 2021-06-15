@@ -302,7 +302,7 @@ async def user_groups(ctx, user, options):
 
             filtered = True
             for f in filters:
-                filtered = True and (f.lower() in title.lower())
+                filtered = filtered and (f.lower() in title.lower())
 
             if filtered:
                 for monster in monsters:
@@ -314,7 +314,7 @@ async def user_groups(ctx, user, options):
 
                     filtered = True
                     for f in filters:
-                        filtered = True and (f.lower() in monster.lower())
+                        filtered = filtered and (f.lower() in monster.lower())
 
                     if filtered:
                         if len(fields[-1][1]) + len(monster) > 1000:
