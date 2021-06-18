@@ -27,7 +27,7 @@ traits = {
                 'note': 'Attack effects get applied twice. Round effects do not get applied twice.'
             },
     'underdark': {
-                'name': 'underdarsk',
+                'name': 'underdark',
                 'emoji': '🌇',
                 'amount': 127,
                 'description': 'Underdark creatures consume weaker allies.',
