@@ -62,7 +62,7 @@ def load_monsters():
 
             damage_full = {
                 "A": "acid",
-                "B": "bludgeoner",
+                "B": "crusher",
                 "C": "cold",
                 "F": "fire",
                 "O": "force",
