@@ -1,9 +1,9 @@
 traits = {
-    'bludgeoner': {
-            'name': 'bludgeoner',
+    'crusher': {
+            'name': 'crusher',
             'emoji': '🔨',
             'amount': 251,
-            'description': 'Bludgeoners always attack the first enemy.',
+            'description': 'Crushers always attack the first enemy.',
             'effects': [
             ],
             'note': ''
