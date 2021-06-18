@@ -7,6 +7,7 @@ from psycopg2.extensions import TRANSACTION_STATUS_INERROR
 import lib.database as db
 import lib.checks
 import lib.resources
+import lib.traits
 import lib.getters
 
 config = lib.util.config
@@ -162,7 +163,8 @@ async def all_monsters(ctx, options):
     for m, (stat_name, stat) in monsters:
         name = m['name']
         cr = m['visual_cr']
-        text = f'**{name}** [Cr: {cr}] \n'
+        traits = ''.join([lib.traits.traits[t]['emoji'] for t in m['traits']])
+        text = f'**{name}** [Cr: {cr}] {traits} \n'
 
         if additional_stat:
             text = text[:-1]
@@ -175,7 +177,7 @@ async def all_monsters(ctx, options):
         for t in trait_filters:
             has_trait = False
             for trait in m['traits']:
-                if t.lower() == trait.lower():
+                if t.lower() == trait.lower() or t.lower() == lib.traits.traits[trait]['emoji']:
                     has_trait = True
             filtered = filtered and has_trait
 
@@ -303,7 +305,7 @@ async def user_monsters(ctx, user, options):
         for t in trait_filters:
             has_trait = False
             for trait in monster['traits']:
-                if t.lower() == trait.lower():
+                if t.lower() == trait.lower() or t.lower() == lib.traits.traits[trait]['emoji']:
                     has_trait = True
             filtered = filtered and has_trait
 
@@ -341,7 +343,7 @@ async def user_monsters(ctx, user, options):
 async def all_traits(ctx, options):
     sort = ''
 
-    traits_resources = lib.resources.traits
+    traits_resources = lib.traits.traits
 
     for o in options:
         if o.startswith('sort:') or o.startswith('s'):
@@ -351,10 +353,10 @@ async def all_traits(ctx, options):
 
     reverse = False if ('-' in options or 'r' in options) else True
 
-    if sort in ['monsters']:
-        traits = sorted(traits_resources, key=lambda x: x[1], reverse=reverse)
+    if sort in ['monsters', 'amount']:
+        traits = sorted(traits_resources.items(), key=lambda x: x[1]['amount'], reverse=reverse)
     else:
-        traits = sorted(traits_resources, key=lambda x: x[0], reverse=not reverse)
+        traits = sorted(traits_resources.items(), key=lambda x: x[1]['name'], reverse=not reverse)
 
     filters = []
     for o in options:
@@ -364,8 +366,10 @@ async def all_traits(ctx, options):
                 filters.append(':'.join(o_list[1:]))
 
     filtered_traits = []
-    for trait, amount in traits:
-        text = f'**{trait}**: {amount} monsters\n'
+    for trait, data in traits:
+        emoji = data['emoji']
+        amount = data['amount']
+        text = f'**{trait}** {emoji}: {amount} monsters\n'
 
         filtered = True
         for f in filters:
@@ -542,6 +546,53 @@ async def group_embed(ctx, group_db, group_monsters_db):
     if len(group_monsters_db) > 0:
         monster_db = db.Monster.get(group_monsters_db[0].monster_id)
         first_monster = lib.resources.get_monster(monster_db.type)
+
+    if len(group_monsters_db) > 0 and len(group_monsters_db) < 11:
+        used_types = []
+        traits = {}
+        trait_descriptions = ''
+        for group_monster_db in group_monsters_db:
+            monster_db = db.Monster.get(group_monster_db.monster_id)
+            monster_type = monster_db.type
+            if monster_type in used_types:
+                continue
+            else:
+                used_types.append(monster_type)
+
+            for trait in lib.resources.monsters[monster_type]['traits']:
+                if trait in traits:
+                    traits[trait] += 1
+                else:
+                    traits[trait] = 1
+
+        for trait, amount in traits.items():
+            trait_resource = lib.traits.traits[trait]
+            emoji = trait_resource['emoji']
+            description = trait_resource['description']
+            if len(trait_resource['effects']) < 1:
+                trait_descriptions += f'**{trait}** {emoji} (**{amount}**): {description} \n\n'
+            else:
+                effects = []
+                for effect in trait_resource['effects']:
+                    if amount >= effect['amount']:
+                        effects.append(effect)
+
+                if len(effects) < 1:
+                    effect = trait_resource['effects'][0]
+                    needed_amount = effect['amount']
+                    text = effect['text']
+
+                    trait_descriptions += f'*{trait} {emoji}*  (**{amount}**/{needed_amount})\n\n'
+                else:
+                    effect = effects[-1]
+                    needed_amount = effect['amount']
+                    text = effect['text']
+
+                    trait_descriptions += f'**{trait}** {emoji}: {description}\n'
+                    trait_descriptions += f' **{amount}**/{needed_amount}: {text}\n\n'
+        
+        embed.add_field(name='Traits', value=trait_descriptions)
+
     
     owner = db.User.get(group_db.owner_id)
     user = lib.getters.get_user_by_id(owner.user_id, ctx.guild.members)
@@ -595,10 +646,11 @@ def monster_full_title(id, name, type, level, exhausted_timestamp):
         return f'Type [{type}] not recognized'
     cr = monster['visual_cr']
     stars = ''.join(['★' for i in range(level)])
+    traits = ''.join([lib.traits.traits[t]['emoji'] for t in monster['traits']])
     if name != type:
-        text = f'**{name}** ({type}) [Cr: {cr}] [{stars}]'
+        text = f'**{name}**{traits} ({type}) [Cr: {cr}] [{stars}]'
     else:
-        text = f'**{name}** [Cr: {cr}] [{stars}]'
+        text = f'**{name}**{traits} [Cr: {cr}] [{stars}]'
 
     if exhausted_timestamp > time.time():
         text += ' 😴'
@@ -609,7 +661,7 @@ def monster_full_title(id, name, type, level, exhausted_timestamp):
 
 def generate_monster_embed(monster):
     title = monster['name'] + ' CR: ' + monster['visual_cr']
-    description = ', '.join(monster['traits'])
+    description = ', '.join([lib.traits.traits[t]['name'] + ' ' + lib.traits.traits[t]['emoji'] for t in monster['traits']])
     embed = discord.Embed(title=title, description=description, url=monster['link'])
 
     embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
@@ -629,7 +681,7 @@ def generate_monster_embed(monster):
 def generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp):
     stars = ''.join(['★' for i in range(level)])
     title = name + ' [CR: ' + monster['visual_cr'] + f'] [{stars}]'
-    description = ', '.join(monster['traits'])
+    description = ', '.join([lib.traits.traits[t]['name'] + ' ' + lib.traits.traits[t]['emoji'] for t in monster['traits']])
     if name != monster['name']:
         description = monster['name'] + ', ' + description
     embed = discord.Embed(title=title, description=description, url=monster['link'])
