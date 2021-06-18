@@ -366,7 +366,7 @@ traits = {
             },
     'elemental': {
                 'name': 'elemental',
-                'emoji': '⚜️',
+                'emoji': '🌀',
                 'amount': 33,
                 'description': 'Elementals summon a random weaker elemental at the end of each round.',
                 'effects': [
@@ -417,7 +417,7 @@ traits = {
             },
     'construct': {
                 'name': 'construct',
-                'emoji': '🤖',
+                'emoji': '⚙️',
                 'amount': 28,
                 'description': 'At the beginning of the fight, constructs gain additional AC.',
                 'effects': [
@@ -621,7 +621,7 @@ traits = {
             },
     'force': {
                 'name': 'force',
-                'emoji': '〰️',
+                'emoji': '🏋️',
                 'amount': 13,
                 'description': 'Force creatures may ignore armor.',
                 'effects': [
