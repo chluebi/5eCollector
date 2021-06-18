@@ -7,6 +7,7 @@ import lib.checks
 import lib.database as db
 import lib.embeds
 import lib.util
+import lib.traits
 
 
 class UserCog(commands.Cog):
@@ -409,8 +410,23 @@ class TraitCog(commands.Cog):
     @commands.command(name='trait')
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def trait_info(self, ctx):
-        pass
+    async def trait_info(self, ctx, trait_text):
+        trait = None
+        for name, data in lib.traits.traits.items():
+            if trait_text.lower() == name.lower():
+                trait = data
+                break
+            if trait_text.lower() == data['name'].lower():
+                trait = data
+                break
+            if trait_text.lower() == data['emoji'].lower():
+                trait = data
+                break
+
+        if trait is None:
+            await ctx.message.channel.send(f'No trait ``{trait_text}`` found.')
+        else:
+            await lib.embeds.trait_info(ctx, trait)
 
 
 

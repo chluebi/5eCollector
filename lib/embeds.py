@@ -401,6 +401,22 @@ async def all_traits(ctx, options):
     for e in embeds:
         await ctx.message.channel.send(embed=e)
 
+
+async def trait_info(ctx, trait):
+    name = trait['name']
+    emoji = trait['emoji']
+    total_amount = trait['amount']
+
+    description = trait['description'] + '\n'
+
+    for data in trait['effects']:
+        amount = data['amount']
+        effect = data['text']
+        description += f'**{amount} {name} {emoji}**: {effect} \n'
+
+    description += f'\n There are {total_amount} {name} {emoji}'
+    embed = discord.Embed(title=f'{name} {emoji}', description=description)
+    await ctx.message.channel.send(embed=embed)
     
 
 async def user_groups(ctx, user, options):
