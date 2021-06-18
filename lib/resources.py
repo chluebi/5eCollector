@@ -110,6 +110,8 @@ def load_monsters():
                 for env in monster['environment'][:int(max(3, cr**(2/5) // 1))]:
                     monster_traits.append(env)
 
+            monster_traits = monster_traits[:int(max(3, 3*cr**(3/4)//1))]
+
             if 'spellcasting' in monster:
                 if 'type' in monster:
                     if 'type' in monster['type']:
@@ -124,7 +126,7 @@ def load_monsters():
                 else:
                     traits[trait] += 1
 
-            monster_traits = monster_traits[:int(max(3, cr**(3/4)//1))]
+            
 
             monsters[monster['name']] = {
                 'name': monster['name'],
@@ -149,16 +151,23 @@ def load_monsters():
 
     traits = sorted(list(traits.items()), key=lambda x: x[1], reverse=True)
     for trait, amount in traits:
-        print(trait, amount)
+        pass
+        #print(trait, amount)
 
     l = sorted([(monster['name'], monster['traits']) for _, monster in monsters.items()], key=lambda x: len(x[1]), reverse=True)
     for monster, monster_traits in l:
-        print(monster, monster_traits)
+        pass
+        #print(monster, monster_traits)
     
     return monsters, traits
 
 
 monsters, traits = load_monsters()
+
+import lib.traits
+
+for trait, amount in traits:
+    lib.traits.traits[trait]['amount'] = amount
 
 
 def random_monster():
