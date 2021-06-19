@@ -28,7 +28,7 @@ traits = {
             },
     'underdark': {
                 'name': 'underdark',
-                'emoji': '🌇',
+                'emoji': '🌌',
                 'amount': 127,
                 'description': 'Underdark creatures consume weaker allies.',
                 'effects': [
