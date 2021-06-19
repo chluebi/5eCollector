@@ -155,11 +155,24 @@ class Group:
         return displayed_traits
 
 
+    def has_trait(self, trait_name, amount=0):
+        if trait_name not in self.traits:
+            return False
+
+        if self.traits[trait_name] >= amount:
+            return True
+        else:
+            return False
+
+
     def __str__(self):
         return f'#{self.id} {self.name}'
 
     def alive(self):
         return True in [f.alive for f in self.fighters]
+
+    def alive_fighters(self):
+        return [f for f in self.fighters if f.alive]
 
     def next_alive(self):
         for fighter in self.fighters[::-1]:
@@ -170,7 +183,7 @@ class Group:
 
 class Battle:
     
-    def __init__(self, ctx, stat, defenders, attackers, def_user_db, att_user_db, speed=10000):
+    def __init__(self, ctx, stat, defenders, attackers, def_user_db, att_user_db, speed=1):
         self.round = 0
         self.history = []
         self.speed = speed
@@ -193,29 +206,41 @@ class Battle:
         value += f'Damage Multiplier: **{self.round}**' 
         embed.add_field(name=f'Round {self.round}', value=value, inline=False)
 
-        embed.add_field(name=f'Attackers: {self.attackers}', value='\n'.join([str(f) for f in self.attackers.fighters]))
-        embed.add_field(name=f'Defenders: {self.defenders}', value='\n'.join([str(f) for f in self.defenders.fighters]))
+        if len(self.attackers.alive_fighters()) > 0:
+            attackers_visual = '\n'.join([str(f) for f in self.attackers.alive_fighters()])
+        else:
+            attackers_visual = '[empty]'
+        embed.add_field(name=f'Attackers: {self.attackers}', value=attackers_visual)
+
+        if len(self.defenders.alive_fighters()) > 0:
+            defenders_visual = '\n'.join([str(f) for f in self.defenders.alive_fighters()])
+        else:
+            defenders_visual = '[empty]'
+        embed.add_field(name=f'Defenders: {self.defenders}', value=defenders_visual)
         
         embed.set_footer(text='In Progress 🕑')
         return embed
 
-    async def message(self, content):
+    async def message(self, content, force=False):
         self.history.append(content)
         embed = self.start_embed()
         embed.add_field(name='Current', value=content, inline=False)
 
-        if len(self.history) % self.speed == 0:
+        if len(self.history) % max(1, self.speed) == 0 or force:
             await self.start_message.edit(embed=embed)
             if self.round < 10:
-                await asyncio.sleep(2)
+                await asyncio.sleep(max(1, 1/self.speed)*2)
             else:
-                await asyncio.sleep(1)
+                await asyncio.sleep(max(1, 1/self.speed))
+
+    def kill(self, attacker, target):
+        target.alive = False
     
     def damage(self, attacker, target, damage):
         target.hp -= damage
 
         if target.hp < 1:
-            target.alive = False
+            self.kill(attacker, target)
 
     def attack(self, attacker, target):
 
@@ -249,40 +274,165 @@ class Battle:
 
         self.start_message = await self.ctx.message.channel.send(embed=embed)
 
+        trait_messages = {
+            self.attackers.name: [],
+            self.defenders.name: []
+            }
+
+        def trait_message(trait, effect=None):
+            trait_data = lib.traits.traits[trait]
+            message = trait_data['name'] + ' ' + trait_data['emoji'] + '\n'
+            message += trait_data['description'] + '\n'
+            if effect is not None:
+                message += str(trait_data['effects'][effect]['amount']) + ' ' + trait_data['emoji'] + ': '
+                message += trait_data['effects'][effect]['text']
+            return message
+
+        for side in [self.attackers, self.defenders]:
+            if side.has_trait('hill', amount=5):
+                for fighter in side.fighters:
+                    if fighter.has_trait('hill'):
+                        fighter.max_hp = fighter.max_hp * (1 + 0.05 * fighter.cr)
+                        fighter.hp = fighter.hp * (1 + 0.05 * fighter.cr)
+                trait_messages[side.name].append(trait_message('hill', effect=0))
+
+            if side.has_trait('beast', amount=9):
+                for fighter in side.fighters:
+                    if fighter.has_trait('beast'):
+                        for stat, amount in fighter.stats.items():
+                            fighter.stats[stat] += 8
+                trait_messages[side.name].append(trait_message('beast', effect=2))
+            elif side.has_trait('beast', amount=6):
+                for fighter in side.fighters:
+                    if fighter.has_trait('beast'):
+                        for stat, amount in fighter.stats.items():
+                            fighter.stats[stat] += 5
+                trait_messages[side.name].append(trait_message('beast', effect=1))
+            elif side.has_trait('beast', amount=3):
+                for fighter in side.fighters:
+                    if fighter.has_trait('beast'):
+                        for stat, amount in fighter.stats.items():
+                            fighter.stats[stat] += 3
+                trait_messages[side.name].append(trait_message('beast', effect=0))
+
+            if side.has_trait('dragon', amount=9):
+                strongest = sorted([f for f in side.fighters if f.has_trait('dragon')], key=lambda x: x.cr, reverse=True)[0]
+                for stat, amount in strongest.stats.items():
+                    strongest.stats[stat] += 20 + 10
+                for fighter in side.fighters:
+                    if fighter.has_trait('dragon'):
+                        for stat, amount in fighter.stats.items():
+                            fighter.stats[stat] -= 10
+                trait_messages[side.name].append(trait_message('dragon', effect=2))
+            elif side.has_trait('dragon', amount=6):
+                strongest = sorted([f for f in side.fighters if f.has_trait('dragon')], key=lambda x: x.cr, reverse=True)[0]
+                for stat, amount in strongest.stats.items():
+                    strongest.stats[stat] += 10 + 5
+                for fighter in side.fighters:
+                    if fighter.has_trait('dragon'):
+                        for stat, amount in fighter.stats.items():
+                            fighter.stats[stat] -= 5
+                trait_messages[side.name].append(trait_message('dragon', effect=1))
+            elif side.has_trait('dragon', amount=3):
+                strongest = sorted([f for f in side.fighters if f.has_trait('dragon')], key=lambda x: x.cr, reverse=True)[0]
+                for stat, amount in strongest.stats.items():
+                    strongest.stats[stat] += 5 + 2
+                for fighter in side.fighters:
+                    if fighter.has_trait('dragon'):
+                        for stat, amount in fighter.stats.items():
+                            fighter.stats[stat] -= 2
+                trait_messages[side.name].append(trait_message('dragon', effect=0))
+
+            if side.has_trait('arctic', amount=5):
+                for s in [self.attackers, self.defenders]:
+                    for fighter in s.fighters:
+                        if not fighter.has_trait('arctic'):
+                            for stat, amount in fighter.stats.items():
+                                fighter.stats[stat] -= 5
+                trait_messages[side.name].append(trait_message('arctic', effect=0))
+
+            if side.has_trait('construct', amount=9):
+                for fighter in side.fighters:
+                    if fighter.has_trait('construct'):
+                        fighter.ac += 7
+                trait_messages[side.name].append(trait_message('construct', effect=2))
+            elif side.has_trait('construct', amount=6):
+                for fighter in side.fighters:
+                    if fighter.has_trait('construct'):
+                        fighter.ac += 4
+                trait_messages[side.name].append(trait_message('construct', effect=1))
+            elif side.has_trait('construct', amount=3):
+                for fighter in side.fighters:
+                    if fighter.has_trait('construct'):
+                        fighter.ac += 2
+                trait_messages[side.name].append(trait_message('construct', effect=0))
+
+            if side.has_trait('giant', amount=9):
+                for fighter in side.fighters:
+                    if fighter.has_trait('giant'):
+                        fighter.hp = fighter.hp * (1 + 2)
+                trait_messages[side.name].append(trait_message('giant', effect=2))
+            elif side.has_trait('giant', amount=6):
+                for fighter in side.fighters:
+                    if fighter.has_trait('giant'):
+                        fighter.hp = fighter.hp * (1 + 1)
+                trait_messages[side.name].append(trait_message('giant', effect=1))
+            elif side.has_trait('giant', amount=3):
+                for fighter in side.fighters:
+                    if fighter.has_trait('giant'):
+                        fighter.hp = fighter.hp * (1 + 0.5)
+                trait_messages[side.name].append(trait_message('giant', effect=0))
+
+        msg = ''
+        for side_name, trait_msg in trait_messages.items():
+            msg += f'**{side_name}**\n'
+            for m in trait_msg:
+                msg += m
+                msg += '\n\n'
+            msg += '\n\n'
+
+        await self.message(msg, force=True)
+        await asyncio.sleep(10)
+
         while True:
             self.round += 1
             await self.message(f'--- Round {self.round} ---')
 
-            for defender in self.defenders.fighters:
+            sides = [self.defenders, self.attackers]
 
-                if not defender.alive:
-                    continue
+            for side_index, side in enumerate(sides):
 
-                target = self.attackers.next_alive()
-                if target is None:
-                    break
+                def flip(num):
+                    return 1 - num
 
-                info = self.attack(defender, target)
-                await self.message(info)
+                for attacker in side.alive_fighters():
 
-                defender.action = None
-                target.action = None
+                    if not attacker.alive:
+                        continue
 
+                    if side.has_trait('underdark', amount=5):
+                        if attacker.has_trait('underdark'):
+                            if not side.alive_fighters().index(attacker)+1 >= len(side.alive_fighters()):
+                                target = side.alive_fighters()[side.alive_fighters().index(attacker)+1]
+                                if attacker.hp > target.hp:
+                                    attacker.max_hp += target.max_hp
+                                    attacker.hp += target.max_hp
+                                    for stat, value in target.stats.items():
+                                        attacker.stats[stat] += value
+                                    self.kill(attacker, target)
+                                    emoji = lib.traits.traits['underdark']['emoji']
+                                    await self.message(f'{emoji} {attacker} consumes {target} {emoji}')
 
-            for attacker in self.attackers.fighters:
+                    target = sides[flip(side_index)].next_alive()
+                    if target is None:
+                        break
 
-                if not attacker.alive:
-                    continue
+                    info = self.attack(attacker, target)
+                    if len(info) > 1:
+                        await self.message(info)
 
-                target = self.defenders.next_alive()
-                if target is None:
-                    break
-
-                info = self.attack(attacker, target)
-                await self.message(info)
-
-                attacker.action = None
-                target.action = None
+                    attacker.action = None
+                    target.action = None
 
             if not self.attackers.alive() or not self.defenders.alive():
                 break
