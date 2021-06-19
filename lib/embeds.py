@@ -230,7 +230,7 @@ async def user_monsters(ctx, user, options):
         additional_stat = False
         reverse = not reverse
         # monsters_db.sort(key=lambda x: x.id, reverse=not reverse)
-    if sort in ['name']:
+    elif sort in ['name']:
         monsters_db = [(m, ('name', m.name)) for m in monsters_db]
         additional_stat = False
         reverse = not reverse
@@ -268,7 +268,6 @@ async def user_monsters(ctx, user, options):
             additional_stat = sort != 'cr'
             reverse = reverse
             #monsters_db.sort(key=get_stat, reverse=reverse)
-
     else:
         monsters_db = [(m, (sort, m.type)) for m in monsters_db]
         additional_stat = False
