@@ -185,7 +185,7 @@ traits = {
             },
     'urban': {
                 'name': 'urban',
-                'emoji': '🏠',
+                'emoji': '🏙️',
                 'amount': 56,
                 'description': 'Urban creatures adapt quickly, gaining additional stats if they fail an attack.',
                 'effects': [
