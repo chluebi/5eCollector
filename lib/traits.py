@@ -166,7 +166,7 @@ traits = {
                 'name': 'dragon',
                 'emoji': '🐉',
                 'amount': 56,
-                'description': 'Dragons compete against one-another, giving the dragon with highest cr additional stats but reducing the stats of all other dragons.',
+                'description': 'Dragons compete against one-another: At the start of the fight the dragon with highest cr gains additional stats but all other dragons gain reduced stats.',
                 'effects': [
                     {
                         'amount': 3,
