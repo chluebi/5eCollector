@@ -606,7 +606,11 @@ async def group_embed(ctx, group_db, group_monsters_db):
                     trait_descriptions += f'**{trait}** {emoji}: {description}\n'
                     trait_descriptions += f' **{amount}**/{needed_amount}: {text}\n\n'
         
-        embed.add_field(name='Traits', value=trait_descriptions)
+        if len(trait_descriptions) > 1000:
+            embed.add_field(name='Traits', value=trait_descriptions[:1000], inline=False)
+            embed.add_field(name='Traits', value=trait_descriptions[1000:], inline=False)
+        else:
+            embed.add_field(name='Traits', value=trait_descriptions)
 
     
     owner = db.User.get(group_db.owner_id)
