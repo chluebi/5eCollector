@@ -88,9 +88,13 @@ class Fighter:
                     'cha': lib.util.get_stat(self.monster, 'cha', self.level)
                     }
 
-        self.mods = {key: lib.util.get_modifier(self.monster, key, self.level) for key, value in self.stats.items()}
-
         self.image = self.monster['image']
+
+    def has_trait(self, trait):
+        return trait in self.monster['traits']
+
+    def mod(self, stat):
+        return (self.stats[stat] - 10) // 2
 
     def __str__(self):
         s = ''
@@ -219,7 +223,7 @@ class Battle:
         target.action = 'defend'
         
         base_attack_roll = random.randint(1, 20)
-        attack_roll = base_attack_roll + attacker.mods[self.stat]
+        attack_roll = base_attack_roll + attacker.mod(self.stat)
         defense_roll = target.ac + 1 - self.round
 
         damage = 0
@@ -227,14 +231,14 @@ class Battle:
         info = ''
 
         if attack_roll <= defense_roll:
-            info = f'(⚔️{base_attack_roll}+{attacker.mods[self.stat]}) {attacker} \n 🛡️ \n **(🔰{defense_roll})** {target} '
+            info = f'(⚔️{base_attack_roll}+{attacker.mod(self.stat)}) {attacker} \n 🛡️ \n **(🔰{defense_roll})** {target} '
             return info
 
         base_damage_roll = random.randint(1, 20) * self.round
-        damage_mod = attacker.mods[self.stat] * self.round
+        damage_mod = attacker.mod(self.stat) * self.round
         damage_roll = base_damage_roll + damage_mod
 
-        info = f'**(⚔️{base_attack_roll}+{attacker.mods[self.stat]})** {attacker}  \n 🗡️ \n (🔰{defense_roll}) {target} \n Damage: **(⚔️{base_damage_roll}+{damage_mod})**'
+        info = f'**(⚔️{base_attack_roll}+{attacker.mod(self.stat)})** {attacker}  \n 🗡️ \n (🔰{defense_roll}) {target} \n Damage: **(⚔️{base_damage_roll}+{damage_mod})**'
         
         self.damage(attacker, target, damage_roll)
         return info
