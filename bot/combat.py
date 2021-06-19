@@ -1,3 +1,4 @@
+from re import S
 import discord
 from discord.ext import commands
 import asyncio
@@ -8,6 +9,7 @@ import lib.checks
 import lib.database as db
 import lib.embeds
 import lib.util
+import lib.traits
 
 config = lib.util.config
 
@@ -56,7 +58,9 @@ class ChosenCog(commands.Cog):
 
 class Fighter:
     
-    def __init__(self, monster_db):
+    def __init__(self, monster_db, group):
+        self.group = group
+
         self.alive = True
         self.action = None
 
@@ -91,13 +95,18 @@ class Fighter:
     def __str__(self):
         s = ''
         if self.action == 'attack':
-            s += '🗡️ '
+            s += '⚔️ '
         if self.action == 'defend':
             s += '🛡️ '
 
         s += f'#{self.id} {self.name} [{self.hp}/{self.max_hp}]'
+
+        for trait in self.monster['traits']:
+            if trait in self.group.displayed_traits:
+                s += self.group.displayed_traits[trait]
+
         if not self.alive:
-            s += ' 💀'
+            s = f'~~{s}~~'
 
         return s
 
@@ -107,7 +116,40 @@ class Group:
     def __init__(self, id, name, monsters_db):
         self.id = id
         self.name = name
-        self.fighters = [Fighter(monster_db) for monster_db in monsters_db]
+        self.displayed_traits = []
+        self.fighters = [Fighter(monster_db, self) for monster_db in monsters_db]
+        self.traits = self.determine_traits()
+        self.displayed_traits = self.determine_displayed_traits()
+
+    def determine_traits(self):
+        traits = {}
+        used_types = []
+        for fighter in self.fighters:
+            monster = fighter.monster
+            monster_name = monster['name']
+            if monster_name in used_types:
+                continue
+            else:
+                used_types.append(monster_name)
+
+            for trait in monster['traits']:
+                if trait in traits:
+                    traits[trait] += 1
+                else:
+                    traits[trait] = 1
+        return traits
+
+    def determine_displayed_traits(self):
+        displayed_traits = {}
+        for trait_name, amount in self.traits.items():
+            trait = lib.traits.traits[trait_name]
+
+            if len(trait['effects']) < 1:
+                displayed_traits[trait_name] = trait['emoji']
+            elif trait['effects'][0]['amount'] <= amount:
+                displayed_traits[trait_name] = trait['emoji']
+        return displayed_traits
+
 
     def __str__(self):
         return f'#{self.id} {self.name}'
@@ -124,9 +166,10 @@ class Group:
 
 class Battle:
     
-    def __init__(self, ctx, stat, defenders, attackers, def_user_db, att_user_db):
+    def __init__(self, ctx, stat, defenders, attackers, def_user_db, att_user_db, speed=10000):
         self.round = 0
         self.history = []
+        self.speed = speed
 
         self.stat = stat
         self.ctx = ctx
@@ -156,8 +199,13 @@ class Battle:
         self.history.append(content)
         embed = self.start_embed()
         embed.add_field(name='Current', value=content, inline=False)
-        await self.start_message.edit(embed=embed)
-        await asyncio.sleep(1.5)
+
+        if len(self.history) % self.speed == 0:
+            await self.start_message.edit(embed=embed)
+            if self.round < 10:
+                await asyncio.sleep(2)
+            else:
+                await asyncio.sleep(1)
     
     def damage(self, attacker, target, damage):
         target.hp -= damage
