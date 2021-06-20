@@ -15,6 +15,7 @@
         "rolling": {
             "rolls": 10,
             "roll_cooldown": 10800,
+            "roll_grace": 60,
             "catches": 3,
             "catch_cooldown": 21600,
             "expire_cooldown": 86400
