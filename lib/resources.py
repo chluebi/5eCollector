@@ -83,6 +83,8 @@ def load_monsters():
                     monster_traits.append(damage_full['S'])
                 else:
                     monster_traits.append(damage_full['P'])
+            else:
+                monster_traits.append('pacifist')
 
                 
             allowed = ['beast', 'monstrosity', 'dragon', 'undead', 'demon', 'aberration', 'elemental']

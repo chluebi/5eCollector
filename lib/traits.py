@@ -26,6 +26,31 @@ traits = {
                 ],
                 'note': 'Attack effects get applied twice. Round effects do not get applied twice.'
             },
+    'pacifist': {
+                'name': 'pacifist',
+                'emoji': '🕊️',
+                'amount': 4,
+                'description': 'Pacfists do not attack. Instead they increase the critical hit chance for allies',
+                'effects': [
+                    {
+                        'amount': 1,
+                        'text': 'Increase the critical hit chance for adjacent allies by 1.'
+                    },
+                    {
+                        'amount': 2,
+                        'text': 'Increase the critical hit chance for adjacent allies by 2.'
+                    },
+                    {
+                        'amount': 3,
+                        'text': 'Increase the critical hit chance for adjacent allies by 3.'
+                    },
+                    {
+                        'amount': 4,
+                        'text': 'Increase the critical hit chance for adjacent allies by 4.'
+                    }
+                ],
+                'note': 'Every creature starts out with a hit chance of 1 out of 20. An increase of 1 of hit chance gives the creatures a hit chance of 2 out of 20.'
+            },
     'underdark': {
                 'name': 'underdark',
                 'emoji': '🌌',
