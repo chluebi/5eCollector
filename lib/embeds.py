@@ -405,13 +405,17 @@ async def trait_info(ctx, trait):
     name = trait['name']
     emoji = trait['emoji']
     total_amount = trait['amount']
+    note = trait['note']
 
-    description = trait['description'] + '\n'
+    description = trait['description'] + '\n\n'
 
     for data in trait['effects']:
         amount = data['amount']
         effect = data['text']
-        description += f'**{amount} {name} {emoji}**: {effect} \n'
+        description += f'**{amount} {name} {emoji}**: {effect} \n\n'
+
+    if len(note) > 0:
+        description += f'*Note: {note}* \n'
 
     description += f'\n There are {total_amount} {name} {emoji}'
     embed = discord.Embed(title=f'{name} {emoji}', description=description)
