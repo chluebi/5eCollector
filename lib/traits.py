@@ -102,23 +102,23 @@ traits = {
                 'effects': [
                     {
                         'amount': 2,
-                        'text': '+4 damage on a critical hit.'
+                        'text': '4 bonus damage on a critical hit.'
                     },
                     {
                         'amount': 4,
-                        'text': '+12 damage on a critical hit.'
+                        'text': '12 bonus damage on a critical hit.'
                     },
                     {
                         'amount': 6,
-                        'text': '+20 damage on a critical hit.'
+                        'text': '20 bonus damage on a critical hit.'
                     },
                     {
                         'amount': 8,
-                        'text': '+30 damage on a critical hit.'
+                        'text': '30 bonus damage on a critical hit.'
                     },
                     {
                         'amount': 10,
-                        'text': '+50 damage on a critical hit.'
+                        'text': '50 bonus damage on a critical hit.'
                     }
                 ],
                 'note': 'Critical hits occur when a 20 is rolled for the attack roll and always hit.'
@@ -221,27 +221,27 @@ traits = {
                 'name': 'fire',
                 'emoji': '🔥',
                 'amount': 53,
-                'description': 'On a successful attack, fire creatures deal additional damage to the target and adjacent creatures.',
+                'description': 'On a successful attack, fire creatures deal additional bonus damage to the target and adjacent creatures.',
                 'effects': [
                     {
                         'amount': 2,
-                        'text': 'An additional +1 damage to the target and adjacent creatures.'
+                        'text': '1 bonus damage to the target and adjacent creatures.'
                     },
                     {
                         'amount': 4,
-                        'text': 'An additional +2 damage to the target and adjacent creatures.'
+                        'text': '2 bonus damage to the target and adjacent creatures.'
                     },
                     {
                         'amount': 6,
-                        'text': 'An additional +3 damage to the target and adjacent creatures.'
+                        'text': '3 bonus damage to the target and adjacent creatures.'
                     },
                     {
                         'amount': 8,
-                        'text': 'An additional +4 damage to the target and adjacent creatures.'
+                        'text': '4 bonus damage to the target and adjacent creatures.'
                     },
                     {
                         'amount': 10,
-                        'text': 'An additional +5 damage to the target and adjacent creatures.'
+                        'text': '5 bonus damage to the target and adjacent creatures.'
                     }
                 ],
                 'note': ''
@@ -349,7 +349,7 @@ traits = {
                         'text': 'Heal for 50% of dealt damage when attacking.'
                     }
                 ],
-                'note': ''
+                'note': 'Bonus damage does not count'
             },
     'coastal': {
                 'name': 'coastal',
