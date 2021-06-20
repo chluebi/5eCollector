@@ -117,10 +117,12 @@ def load_monsters():
             if 'spellcasting' in monster:
                 if 'type' in monster:
                     if 'type' in monster['type']:
-                        if monster['type']['type'] == 'humanoid':
+                        if monster['type']['type'] in ['humanoid']:
                             if 'tags' in monster['type']:
                                 if 'any race' in monster['type']['tags']:
                                     monster_traits.append('spellcaster')
+                    elif monster['type'] in ['undead']:
+                        monster_traits.append('spellcaster')
 
             for trait in monster_traits:
                 if trait not in traits:
