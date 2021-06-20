@@ -88,7 +88,7 @@ class MonsterCog(commands.Cog):
         except ValueError:
             monster = lib.resources.get_monster(monster)
             if monster is None:
-                await ctx.message.channel.send(f'No monster of this type found (case sensitive).')
+                await ctx.message.channel.send(f'No monster of this type found.')
                 return
             embed = lib.embeds.generate_monster_embed(monster)
 

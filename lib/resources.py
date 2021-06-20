@@ -186,4 +186,7 @@ def get_monster(name):
     if name in monsters:
         return monsters[name]
     else:
+        for monster, data in monsters.items():
+            if monster.lower() == name.lower() or data['name'].lower() == name.lower():
+                return data
         return None
