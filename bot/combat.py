@@ -558,7 +558,8 @@ class Battle:
                     bonus_damage = 12
                 elif attacker_side.has_trait('poison', amount=2):
                     bonus_damage = 4
-                
+
+                self.damage(attacker, target, bonus_damage) 
                 infos.append(f'🎯💚 {target} takes **{bonus_damage}** bonus damage 💚🎯')
 
 
