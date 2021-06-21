@@ -572,13 +572,23 @@ class Battle:
 
                 bonus_targets = [target] + target_side.adjacent(target)
 
+                info = f'🎯❄️ These creatures have their stats reduced by {stat_reduction} ❄️🎯\n'
                 for t in bonus_targets:
                     for stat, amount in t.stats.items():
                         t.stats[stat] -= stat_reduction
+                    info += f'{t}\n'
 
-                bonus_targets_text = ', '.join(bonus_targets)
+                infos.append(info)
 
-                infos.append(f'🎯❄️ {bonus_targets_text} have their stats reduced by {stat_reduction} ❄️🎯')
+            if attacker.has_trait('spellcaster'):
+
+                info = '🎯🧙 Spellcaster damages all enemies: 🧙🎯\n'
+
+                for t in target_side.alive_fighters():
+                    inf, d = await self.attack_damage(attacker_side, target_side, attacker, t, False)
+                    info += f'**{d}** to {t}' + '\n'
+
+                infos.append(info)
 
         if len(infos) > 0:
             await self.message('\n\n'.join(infos))
