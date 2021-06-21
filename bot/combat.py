@@ -815,7 +815,7 @@ class Battle:
             msg += '\n\n'
 
         await self.message(msg, force=True)
-        await asyncio.sleep(10)
+        await asyncio.sleep(10/self.speed)
 
         while True:
             self.round += 1
