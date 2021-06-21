@@ -584,14 +584,19 @@ async def group_embed(ctx, group_db, group_monsters_db):
                 else:
                     traits[trait] = 1
 
+        passive_traits = []
+        active_traits = []
+        inactive_traits = []
+
         for trait, amount in traits.items():
             trait_resource = lib.traits.traits[trait]
             emoji = trait_resource['emoji']
             description = trait_resource['description']
             if len(trait_resource['effects']) < 1:
-                trait_descriptions += f'**{trait}** {emoji} (**{amount}**): {description} \n\n'
+                passive_traits.append(f'**{trait}** {emoji} (**{amount}**): {description} \n')
             else:
                 effects = []
+                inactive_effects = []
                 for effect in trait_resource['effects']:
                     if amount >= effect['amount']:
                         effects.append(effect)
@@ -601,33 +606,54 @@ async def group_embed(ctx, group_db, group_monsters_db):
                     needed_amount = effect['amount']
                     text = effect['text']
 
-                    trait_descriptions += f'*{trait} {emoji}*  (**{amount}**/{needed_amount})\n\n'
+                    inactive_traits.append(f'*{trait} {emoji}*  (**{amount}**/{needed_amount})\n')
                 else:
                     effect = effects[-1]
                     needed_amount = effect['amount']
                     text = effect['text']
 
-                    trait_descriptions += f'**{trait}** {emoji}: {description}\n'
-                    trait_descriptions += f' **{amount}**/{needed_amount}: {text}\n\n'
-        
-        if len(trait_descriptions) > 1000:
-            embed.add_field(name='Traits', value=trait_descriptions[:1000], inline=False)
-            embed.add_field(name='Traits', value=trait_descriptions[1000:], inline=False)
-        else:
-            embed.add_field(name='Traits', value=trait_descriptions)
+                    active_traits.append(f'**{trait}** {emoji}: {description}\n**{amount}**/{needed_amount}: {text}\n')
 
-    
+        fields = ['']
+        for traits in [passive_traits, active_traits, inactive_traits]:
+            for trait in traits:
+                if len(fields[-1]) + len(trait) > 1000:
+                    fields.append(trait)
+                else:
+                    fields[-1] += trait
+            fields[-1] += '\n'
+
+        for field in fields:
+            embed.add_field(name='Traits', value=field)
+            
+
     owner = db.User.get(group_db.owner_id)
     user = lib.getters.get_user_by_id(owner.user_id, ctx.guild.members)
 
     embeds = [embed]
 
     group_monsters_db.sort(key=lambda x: x.group_index)
+
+    stat_sums = {
+                'hp': 0,
+                'ac': 0,
+                'str': 0,
+                'dex': 0,
+                'con': 0,
+                'int': 0,
+                'wis': 0,
+                'cha': 0,
+                }
+
     
     if len(group_monsters_db) > 0:
         monsters = ['']
         for group_monster_db in group_monsters_db:
             monster_db = db.Monster.get(group_monster_db.monster_id)
+            monster = lib.resources.get_monster(monster_db.type)
+
+            for stat in ['hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+                stat_sums[stat] += monster[stat]
 
             text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
 
@@ -645,6 +671,12 @@ async def group_embed(ctx, group_db, group_monsters_db):
                 embed.add_field(name=f'Monsters [{len(monsters)}] (Part #{i})', value=page, inline=False)
             else:
                 embed.add_field(name=f'Monsters [{len(monsters)}]', value=page, inline=False)
+
+    stat_text = ''
+    for stat in ['hp', 'ac', 'str', 'dex', 'con', 'int', 'wis', 'cha']:
+        stat_text += f'{stat.capitalize()}: **{round(stat_sums[stat]/len(group_monsters_db)*10)/10}**\n'
+
+    embed.add_field(name=f'Average Stats', value=stat_text, inline=False)
 
     for embed in embeds:
         if len(group_monsters_db) > 0:
