@@ -32,7 +32,7 @@ class StatsCog(commands.Cog):
                 if user is not None:
                     ranking.append((user_db.score, f'{user} ({user_db.score})'))
 
-        elif category in ['glory']:
+        elif category in ['glory', 'chosen']:
             ranking_title = '**Ranking by Glory**'
             chosens_db = db.Chosen.get_by_guild(ctx.guild.id)
 
