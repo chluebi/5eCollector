@@ -34,19 +34,19 @@ traits = {
                 'effects': [
                     {
                         'amount': 1,
-                        'text': 'Increase the critical hit chance for adjacent allies by 1.'
+                        'text': 'Allow allies to also crit when rolling a 19.'
                     },
                     {
                         'amount': 2,
-                        'text': 'Increase the critical hit chance for adjacent allies by 2.'
+                        'text': 'Allow allies to also crit when rolling a 19 or 18.'
                     },
                     {
                         'amount': 3,
-                        'text': 'Increase the critical hit chance for adjacent allies by 3.'
+                        'text': 'Allow allies to also crit when rolling a 19, 18 or 17.'
                     },
                     {
                         'amount': 4,
-                        'text': 'Increase the critical hit chance for adjacent allies by 4.'
+                        'text': 'Allow allies to also crit when rolling a 19, 18, 17 or 16.'
                     }
                 ],
                 'note': 'Every creature starts out with a hit chance of 1 out of 20. An increase of 1 of hit chance gives the creatures a hit chance of 2 out of 20.'
@@ -146,7 +146,7 @@ traits = {
                         'text': '50 bonus damage on a critical hit.'
                     }
                 ],
-                'note': 'Critical hits occur when a 20 is rolled for the attack roll and always hit.'
+                'note': ''
             },
     'grassland': {
                 'name': 'grassland',
@@ -250,23 +250,23 @@ traits = {
                 'effects': [
                     {
                         'amount': 2,
-                        'text': '1 bonus damage to the target and adjacent creatures.'
-                    },
-                    {
-                        'amount': 4,
                         'text': '2 bonus damage to the target and adjacent creatures.'
                     },
                     {
-                        'amount': 6,
-                        'text': '3 bonus damage to the target and adjacent creatures.'
-                    },
-                    {
-                        'amount': 8,
+                        'amount': 4,
                         'text': '4 bonus damage to the target and adjacent creatures.'
                     },
                     {
+                        'amount': 6,
+                        'text': '8 bonus damage to the target and adjacent creatures.'
+                    },
+                    {
+                        'amount': 8,
+                        'text': '14 bonus damage to the target and adjacent creatures.'
+                    },
+                    {
                         'amount': 10,
-                        'text': '5 bonus damage to the target and adjacent creatures.'
+                        'text': '20 bonus damage to the target and adjacent creatures.'
                     }
                 ],
                 'note': ''
@@ -342,15 +342,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Deal 5 damage to the attacker.'
+                        'text': 'Deal 5 bonus damage to the attacker.'
                     },
                     {
                         'amount': 6,
-                        'text': 'Deal 10 damage to the attacker.'
+                        'text': 'Deal 10 bonus damage to the attacker.'
                     },
                     {
                         'amount': 9,
-                        'text': 'Deal 20 damage to the attacker.'
+                        'text': 'Deal 20 bonus damage to the attacker.'
                     }
                 ],
                 'note': ''
@@ -435,7 +435,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Also damage the first and last enemy.'
+                        'text': 'Also damage 3 additional random enemies.'
                     }
                 ],
                 'note': ''
@@ -546,7 +546,7 @@ traits = {
                 'name': 'spellcaster',
                 'emoji': '🧙',
                 'amount': 23,
-                'description': 'On a crit, spellcasters damage all enemies.',
+                'description': 'On a crit, spellcasters additionally damage all enemies.',
                 'effects': [
                 ],
                 'note': ''
@@ -555,22 +555,22 @@ traits = {
                 'name': 'fey',
                 'emoji': '✨',
                 'amount': 21,
-                'description': 'Instead of attacking an enemy, fey heal all allies.',
+                'description': 'At the end of the round, fey summon pixies.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Heal all allies for 30% of the roll.'
+                        'text': 'At the end of the round, summon 1 pixie.'
                     },
                     {
                         'amount': 6,
-                        'text': 'Heal all allies for 60% of the roll.'
+                        'text': 'At the end of the round, summon 2 pixies.'
                     },
                     {
                         'amount': 9,
-                        'text': 'Heal all allies for 100% of the roll.'
+                        'text': 'At the end of the round, summon 3 pixies.'
                     }
                 ],
-                'note': ''
+                'note': 'The pixies are pacifists and therefore not attack.'
             },
     'arctic': {
                 'name': 'arctic',
@@ -681,8 +681,8 @@ traits = {
     'yugoloth': {
                 'name': 'yugoloth',
                 'emoji': '👹',
-                'amount': 10,
-                'description': 'Yugoloths allow nearby allies to also crit when rolling a 1.',
+                'amount': 3,
+                'description': 'Yugoloths allow allies to also crit when rolling a 1.',
                 'effects': [
                 ],
                 'note': ''
@@ -704,7 +704,7 @@ traits = {
                 'name': 'orc',
                 'emoji': '💪',
                 'amount': 10,
-                'description': 'Orc gain additional stats on their attack roll with their missing health.',
+                'description': 'Orc gain a bonus on their attack roll when missing health.',
                 'effects': [
                     {
                         'amount': 3,
@@ -725,7 +725,7 @@ traits = {
                 'name': 'gith',
                 'emoji': '🧝🏽‍♀️',
                 'amount': 9,
-                'description': 'Orc gain additional stats on their attack roll if their CR is lower than the enemies.',
+                'description': 'Gith gain additional stats on their attack roll if their CR is lower than the enemies.',
                 'effects': [
                     {
                         'amount': 3,
@@ -746,11 +746,11 @@ traits = {
                 'name': 'ooze',
                 'emoji': '🧪',
                 'amount': 8,
-                'description': 'Ooze may consum weakened enemies, absorbing them for their stats and healing for their max HP.',
+                'description': 'Ooze may consum weakened attackers, absorbing them for their stats (excluding AC).',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Attacking an enemy with 10% or less HP leads to the ooze consuming them for their max HP and makes them absorb all of the enemy\'s stats.'
+                        'text': 'Being attacked by an enemy with 20% or less HP leads to the ooze consuming them for their max HP and makes them absorb all of the enemy\'s stats.'
                     }
                 ],
                 'note': ''

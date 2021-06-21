@@ -164,6 +164,19 @@ class Group:
         else:
             return False
 
+    def adjacent(self, monster):
+        adj = []
+        if monster not in self.alive_fighters():
+            return adj
+
+        ind = self.alive_fighters().index(monster)
+        if ind != 0:
+            adj.append(self.alive_fighters()[ind-1])
+        if ind != len(self.alive_fighters()) - 1:
+            adj.append(self.alive_fighters()[ind+1])
+
+        return adj
+
 
     def __str__(self):
         return f'#{self.id} {self.name}'
@@ -204,16 +217,16 @@ class Battle:
 
         value = f'AC reduced by **{self.round-1}**\n'
         value += f'Damage Multiplier: **{self.round}**' 
-        embed.add_field(name=f'Round {self.round}', value=value, inline=False)
+        embed.add_field(name=f'Round {self.round}⏲️', value=value, inline=False)
 
         if len(self.attackers.alive_fighters()) > 0:
-            attackers_visual = '\n'.join([str(f) for f in self.attackers.alive_fighters()])
+            attackers_visual = '\n'.join([str(f) if f.action is None else f'**{f}**' for f in self.attackers.alive_fighters() ])
         else:
             attackers_visual = '[empty]'
         embed.add_field(name=f'Attackers: {self.attackers}', value=attackers_visual)
 
         if len(self.defenders.alive_fighters()) > 0:
-            defenders_visual = '\n'.join([str(f) for f in self.defenders.alive_fighters()])
+            defenders_visual = '\n'.join([str(f) if f.action is None else f'**{f}**' for f in self.defenders.alive_fighters()])
         else:
             defenders_visual = '[empty]'
         embed.add_field(name=f'Defenders: {self.defenders}', value=defenders_visual)
@@ -222,16 +235,20 @@ class Battle:
         return embed
 
     async def message(self, content, force=False):
-        self.history.append(content)
+        self.history.append(content + '\n')
         embed = self.start_embed()
-        embed.add_field(name='Current', value=content, inline=False)
+
+        if len(content) > 1000:
+            for i in range(len(content) // 1000 + 1):
+                embed.add_field(name='Current', value=content[i*1000:(i+1)*1000], inline=False)
+        else:
+            embed.add_field(name='Current', value=content, inline=False)
+
+        display_length = max(1, 1 + len(content)/30/self.speed)
 
         if len(self.history) % max(1, self.speed) == 0 or force:
             await self.start_message.edit(embed=embed)
-            if self.round < 10:
-                await asyncio.sleep(max(1, 1/self.speed)*2)
-            else:
-                await asyncio.sleep(max(1, 1/self.speed))
+            await asyncio.sleep(display_length)
 
     def kill(self, attacker, target):
         target.alive = False
@@ -242,31 +259,423 @@ class Battle:
         if target.hp < 1:
             self.kill(attacker, target)
 
-    def attack(self, attacker, target):
+    def heal(self, healer, target, healing):
+        if target.hp < 1:
+            return
+
+        target.hp = min(target.hp + healing, target.max_hp)
+
+    async def attack(self, attacker_side, target_side, attacker, target):
 
         attacker.action = 'attack'
         target.action = 'defend'
+
+        modifier = (attacker.mod(self.stat), '')
+
+        if attacker_side.has_trait('shapechanger', amount=10):
+            max_stat = 0
+            for monster in attacker_side.alive_fighters() + target_side.alive_fighters():
+                max_stat = max(monster['stats'][self.stat])
+            modifier = (max_stat, '👽')
+        elif attacker_side.has_trait('shapechanger', amount=5):
+            modifier = (attacker.mod(self.stat), '👽')
         
         base_attack_roll = random.randint(1, 20)
-        attack_roll = base_attack_roll + attacker.mod(self.stat)
+        #🎯
+
+        critting = [20]
+        crit_text = ''
+
+        if attacker_side.has_trait('pacifist', amount=1):
+            critting.append(19)
+            crit_text += '🕊️'
+        if attacker_side.has_trait('pacifist', amount=2):
+            critting.append(18)
+        if attacker_side.has_trait('pacifist', amount=3):
+            critting.append(17)
+        if attacker_side.has_trait('pacifist', amount=4):
+            critting.append(16)
+
+        if attacker_side.has_trait('yugoloth', amount=3):
+            critting.append(1)
+            crit_text += '👹'
+
+        if base_attack_roll in critting:
+            base_attack_roll = (base_attack_roll, crit_text)
+            crit = True
+        else:
+            base_attack_roll = (base_attack_roll, '')
+            crit = False
+
+        attack_roll = base_attack_roll[0] + attacker.mod(self.stat)
+        attack_text = ''
+
+        if attacker_side.has_trait('gith', amount=9) and attacker.has_trait('gith'):
+            if attacker.cr < target.cr:
+                attack_roll += 20
+                attack_text += '🧝🏽‍♀️'
+        elif attacker_side.has_trait('gith', amount=6) and attacker.has_trait('gith'):
+            if attacker.cr < target.cr:
+                attack_roll += 10
+                attack_text += '🧝🏽‍♀️'
+        elif attacker_side.has_trait('gith', amount=3) and attacker.has_trait('gith'):
+            if attacker.cr < target.cr:
+                attack_roll += 5
+                attack_text += '🧝🏽‍♀️'
+
+        if attacker_side.has_trait('orc', amount=9) and attacker.has_trait('orc'):
+            attack_roll += int((1 - attacker.hp/attacker.max_hp) * 20 * 3)
+            attack_text += '💪'
+        elif attacker_side.has_trait('orc', amount=6) and attacker.has_trait('orc'):
+            attack_roll += int((1 - attacker.hp/attacker.max_hp) * 20 * 2)
+            attack_text += '💪'
+        elif attacker_side.has_trait('orc', amount=3) and attacker.has_trait('orc'):
+            attack_roll += int((1 - attacker.hp/attacker.max_hp) * 20 * 1)
+            attack_text += '💪'
+
+        attack_roll = (attack_roll, attack_text)
+
         defense_roll = target.ac + 1 - self.round
+        defense_text = ''
+
+        if target_side.has_trait('construct', amount=3) and target.has_trait('construct'):
+            defense_text += '⚙️'
+
+        defense_roll = (defense_roll, defense_text)
 
         damage = 0
 
-        info = ''
+        infos = []
 
-        if attack_roll <= defense_roll:
-            info = f'(⚔️{base_attack_roll}+{attacker.mod(self.stat)}) {attacker} \n 🛡️ \n **(🔰{defense_roll})** {target} '
-            return info
+        if target.has_trait('acid') and target_side.has_trait('acid', amount=3):
+            if target_side.has_trait('acid', amount=9):
+                damage = 20
+            elif target_side.has_trait('acid', amount=6):
+                damage = 10
+            elif target_side.has_trait('acid', amount=3):
+                damage = 5
 
-        base_damage_roll = random.randint(1, 20) * self.round
-        damage_mod = attacker.mod(self.stat) * self.round
+            self.damage(target, attacker, damage)
+            infos.append(f'❇️ {attacker} takes **{damage}** bonus damage from attacking an acid monster ❇️')
+
+
+        if target.has_trait('ooze') and target_side.has_trait('ooze', amount=3):
+            if attacker.hp/attacker.max_hp < 0.2:
+                target.max_hp += attacker.hp
+                target.hp += attacker.hp
+
+                for stat, amount in attacker.stats.items():
+                    target.stats[stat] += amount
+
+                infos.append(f'🧪{target} consumes {attacker}🧪')
+                await self.message('\n\n'.join(infos))
+                return
+
+
+        if target.has_trait('elf'):
+            
+            if target_side.has_trait('elf', amount=9):
+                dodge_chance = 0.8
+            elif target_side.has_trait('elf', amount=6):
+                dodge_chance = 0.6
+            elif target_side.has_trait('elf', amount=3):
+                dodge_chance = 0.4
+            else:
+                dodge_chance = 0.3
+
+            if crit:
+                infos.append(f'🎯(**{base_attack_roll[0]}**+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}={attack_roll[0]}) {attacker} \n 🛡️ \n 🧝(Dodge Chance: {int(dodge_chance*100)}%) {target}')
+                hit = True
+            else:
+                if random.random() > dodge_chance:
+                    infos.append(f'⚔️**({base_attack_roll[0]}+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}={attack_roll[0]})** {attacker} \n 🛡️ \n 🧝(Dodge Chance: {int(dodge_chance*100)}%) {target}')
+                    hit = True
+                else:
+                    infos.append(f'⚔️({base_attack_roll[0]}+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}={attack_roll[0]}) {attacker} \n 🛡️ \n 🧝**(Dodge Chance: {int(dodge_chance*100)}%)** {target}')
+                    hit = False
+        else:
+            if crit:
+                infos.append(f'🎯(**{base_attack_roll[0]}**+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}={attack_roll[0]}) {attacker} \n 🛡️ \n 🔰({defense_roll[0]}{defense_roll[1]}) {target}')
+                hit = True
+            else:
+                if attacker_side.has_trait('force', amount=10):
+                    infos.append(f'🏋️Force bypasses armor🏋️')
+                    hit = True
+                elif attack_roll <= defense_roll:
+                    infos.append(f'⚔️({base_attack_roll[0]}+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}={attack_roll[0]}) {attacker} \n 🛡️ \n **🔰({defense_roll[0]}{defense_roll[1]})** {target}')
+                    hit = False
+                else:
+                    infos.append(f'⚔️({base_attack_roll[0]}+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}=**{attack_roll[0]}**) {attacker} \n 🛡️ \n 🔰({defense_roll[0]}{defense_roll[1]}) {target}')
+                    hit = True
+
+        if not hit:
+            if target_side.has_trait('celestial', amount=3) and target.has_trait('celestial'):
+                healing_percentage = 0
+                if target_side.has_trait('celestial', amount=6):
+                    healing_percentage = 0.2
+                elif target_side.has_trait('celestial', amount=3):
+                    healing_percentage = 0.1
+
+                for monster in target_side.alive_fighters():
+                    self.heal(attacker, monster, healing_percentage*monster.max_hp)
+                
+                infos.append(f'👼 All allies of {target} are healed for {int(healing_percentage*100)}% of their maximum hp 👼')
+
+        await self.message('\n\n'.join(infos))
+
+        if not hit:
+            return
+
+        infos, applied_damage = await self.attack_damage(attacker_side, target_side, attacker, target, crit)
+        
+        await self.message('\n\n'.join(infos))
+
+        infos = []
+
+        if attacker_side.has_trait('demon', amount=3) and attacker.has_trait('demon'):
+            if attacker_side.has_trait('demon', amount=9):
+                lifesteal = 0.5
+            elif attacker_side.has_trait('demon', amount=6):
+                lifesteal = 0.3
+            elif attacker_side.has_trait('demon', amount=3):
+                lifesteal = 0.1
+            self.heal(attacker, attacker, int(applied_damage*lifesteal))
+            infos.append(f'🎃 {attacker} heals {int(applied_damage*lifesteal)} from attacking 🎃')
+
+
+        if attacker_side.has_trait('necrotic', amount=3) and attacker.has_trait('necrotic'):
+            target.max_hp = target.hp
+            infos.append(f'☠️ {target} max hp has been set to {target.max_hp} ☠️')
+
+        if attacker_side.has_trait('psychic', amount=3) and attacker.has_trait('psychic'):
+            if attacker_side.has_trait('psychic', amount=9):
+                stat_reduction = 3
+            elif attacker_side.has_trait('psychic', amount=6):
+                stat_reduction = 2
+            elif attacker_side.has_trait('psychic', amount=3):
+                stat_reduction = 1
+
+            for stat, amount in target.stats.items():
+                target.stats[stat] -= stat_reduction
+
+            infos.append(f'🔮 All stats of {target} have been reduced by {stat_reduction}')
+
+        if attacker_side.has_trait('fire', amount=2) and attacker.has_trait('fire'):
+            if attacker_side.has_trait('fire', amount=10):
+                bonus_damage = 20
+            elif attacker_side.has_trait('fire', amount=8):
+                bonus_damage = 14
+            elif attacker_side.has_trait('fire', amount=6):
+                bonus_damage = 8
+            elif attacker_side.has_trait('fire', amount=4):
+                bonus_damage = 4
+            elif attacker_side.has_trait('fire', amount=2):
+                bonus_damage = 2
+
+            bonus_targets = [target] + target_side.adjacent(target)
+
+            for t in bonus_targets:
+                self.damage(attacker, t, bonus_damage)
+
+            bonus_targets_text = ', '.join([str(bonus_target) for bonus_target in bonus_targets])
+            
+            info = '🔥 Fire Bonus Damage: 🔥\n'
+            for bonus_target in bonus_targets:
+                info += f'**{bonus_damage}** bonus damage to {bonus_target}\n'
+            infos.append(info)
+
+        if attacker_side.has_trait('aberration', amount=3) and attacker.has_trait('aberration'):
+            if attacker_side.has_trait('aberration', amount=9):
+                bonus_stats = 3
+            elif attacker_side.has_trait('aberration', amount=6):
+                bonus_stats = 2
+            elif attacker_side.has_trait('aberration', amount=3):
+                bonus_stats = 1
+
+            for a in attacker_side.alive_fighters():
+                if a.has_trait('aberration'):
+                    for stat, amount in a.stats.items():
+                        a.stats[stat] += bonus_stats
+
+            infos.append(f'👾 All friendly aberrations gain +{bonus_stats} in all stats 👾')
+
+
+        if attacker_side.has_trait('lightning', amount=5) and attacker_side.has_trait('lightning'):
+            info = '⚡ Lightning damages additional enemies: ⚡\n'
+
+            lightning_targets = []
+            for i in range(3):
+                if len(target_side.alive_fighters()) < 1:
+                    return
+                lightning_targets.append(random.choice(target_side.alive_fighters()))
+
+            for t in lightning_targets:
+                i, d = await self.attack_damage(attacker_side, target_side, attacker, t, False)
+                info += f'**{d}** to {t}' + '\n'
+
+            infos.append(info)
+
+        if attacker_side.has_trait('thunder', amount=3) and attacker.has_trait('thunder'):
+            if attacker_side.has_trait('thunder', amount=9):
+                amount = -1
+            elif attacker_side.has_trait('thunder', amount=6):
+                amount = 3
+            elif attacker_side.has_trait('thunder', amount=3):
+                amount = 2
+
+            info = '🌩️ Thunder damages additional enemies: 🌩️\n'
+
+            i = 1
+            while i - amount != 0 and i < len(target_side.alive_fighters()):
+                t = target_side.alive_fighters()[i]
+                inf, d = await self.attack_damage(attacker_side, target_side, attacker, t, False)
+                info += f'**{d}** to {t}' + '\n'
+                i += 1
+
+            infos.append(info)
+
+        
+        if attacker_side.has_trait('goblinoid', amount=5) and attacker.has_trait('goblinoid'):
+            info = '👺 All allied goblinoids attack the target: 👺\n'
+
+            for a in [f for f in attacker_side.alive_fighters() if f.has_trait('goblinoid')]:
+                inf, d = await self.attack_damage(attacker_side, target_side, a, target, False)
+                info += f'**{d}** by {a}' + '\n'
+
+            infos.append(info)
+
+        
+        if crit:
+
+            if attacker_side.has_trait('poison', amount=2) and attacker.has_trait('poison'):
+                if attacker_side.has_trait('poison', amount=10):
+                    bonus_damage = 50
+                elif attacker_side.has_trait('poison', amount=8):
+                    bonus_damage = 30
+                elif attacker_side.has_trait('poison', amount=6):
+                    bonus_damage = 20
+                elif attacker_side.has_trait('poison', amount=4):
+                    bonus_damage = 12
+                elif attacker_side.has_trait('poison', amount=2):
+                    bonus_damage = 4
+                
+                infos.append(f'🎯💚 {target} takes **{bonus_damage}** bonus damage 💚🎯')
+
+
+            if attacker_side.has_trait('cold', amount=3) and attacker.has_trait('cold'):
+                if attacker_side.has_trait('cold', amount=9):
+                    stat_reduction = 7
+                elif attacker_side.has_trait('cold', amount=6):
+                    stat_reduction = 5
+                elif attacker_side.has_trait('cold', amount=3):
+                    stat_reduction = 3
+
+                bonus_targets = [target] + target_side.adjacent(target)
+
+                for t in bonus_targets:
+                    for stat, amount in t.stats.items():
+                        t.stats[stat] -= stat_reduction
+
+                bonus_targets_text = ', '.join(bonus_targets)
+
+                infos.append(f'🎯❄️ {bonus_targets_text} have their stats reduced by {stat_reduction} ❄️🎯')
+
+        if len(infos) > 0:
+            await self.message('\n\n'.join(infos))
+        return
+                
+
+        
+    async def attack_damage(self, attacker_side, target_side, attacker, target, crit):
+
+        infos = []
+
+        multipliers = [(self.round, '⏲️')]
+
+        if crit:
+            multipliers.append((2, '🎯'))
+
+        if attacker_side.has_trait('monstrosity', amount=9) and attacker.has_trait('monstrosity'):
+            multipliers.append((1.8, '🦖'))
+        elif attacker_side.has_trait('monstrosity', amount=6) and attacker.has_trait('monstrosity'):
+            multipliers.append((1.4, '🦖'))
+        elif attacker_side.has_trait('monstrosity', amount=3) and attacker.has_trait('monstrosity'):
+            multipliers.append((1.2, '🦖'))
+
+        if attacker_side.has_trait('underwater', amount=5) and attacker.has_trait('underwater'):
+            multipliers.append((0.5, '🌊'))
+
+        target_percentage_health = target.hp/target.max_hp
+
+        if attacker_side.has_trait('yuan-ti', amount=9) and attacker.has_trait('yuan-ti') and target_percentage_health < 0.3:
+            multipliers.append((2, '🐍'))
+        elif attacker_side.has_trait('yuan-ti', amount=6) and attacker.has_trait('yuan-ti') and target_percentage_health < 0.2:
+            multipliers.append((2, '🐍'))
+        elif attacker_side.has_trait('yuan-ti', amount=3) and attacker.has_trait('yuan-ti') and target_percentage_health < 0.1:
+            multipliers.append((2, '🐍'))
+        
+
+        base_damage_roll = random.randint(1, 20)
+        damage_mod = attacker.mod(self.stat)
         damage_roll = base_damage_roll + damage_mod
 
-        info = f'**(⚔️{base_attack_roll}+{attacker.mod(self.stat)})** {attacker}  \n 🗡️ \n (🔰{defense_roll}) {target} \n Damage: **(⚔️{base_damage_roll}+{damage_mod})**'
+        full_damage = damage_roll
+        full_multiplier = 1
+        full_multiplier_text = ''
+        for m, text in multipliers:
+            full_damage *= m
+            full_multiplier *= m
+            full_multiplier_text += text
+        full_damage = int(full_damage)
         
-        self.damage(attacker, target, damage_roll)
-        return info
+
+        reductions = []
+
+        if target_side.has_trait('mountain', amount=5) and not target.has_trait('mountain'):
+            reductions.append((0.7, '⛰️'))
+        if target_side.has_trait('desert', amount=5) and target.has_trait('desert'):
+            reductions.append((0.8, '🏜️'))
+        if target_side.has_trait('swamp', amount=5) and target.has_trait('swamp') and target.cr < attacker.cr:
+            reductions.append((0.7, '🏕️'))
+        if target_side.has_trait('underwater', amount=5) and target.has_trait('underwater'):
+            reductions.append((0.5, '🌊'))
+        
+        if target_side.has_trait('dwarf', amount=3) and target.has_trait('dwarf') and target_percentage_health < 0.2:
+            if target_side.has_trait('dwarf', amount=8):
+                reduction = 0.9
+                reductions.append((reduction, '🧔'))
+            elif target_side.has_trait('dwarf', amount=6):
+                reduction = 0.7
+                reductions.append((reduction, '🧔'))
+            elif target_side.has_trait('dwarf', amount=3):
+                reduction = 0.5
+                reductions.append((reduction, '🧔'))
+
+        applied_damage = full_damage
+        full_reduction = 1
+        full_reduction_text = ''
+        for r, text in reductions:
+            applied_damage /= r
+            full_reduction *= r
+            full_reduction_text += text
+        applied_damage = int(applied_damage)
+
+        self.damage(attacker, target, applied_damage)
+
+        applied_multiplier = full_multiplier/full_reduction
+        full_multiplier = round(full_multiplier*100)/100
+        full_reduction = round(full_reduction*100)/100
+
+        damage_info = f'**{full_damage}**{full_multiplier_text} damage from{attacker}'
+
+        if applied_damage != full_damage:
+            damage_info += f'\n**{applied_damage}**{full_reduction_text} damage taken by {target}'
+        else:
+            damage_info += f'\n to {target}'
+        infos.append(damage_info)
+
+
+        return infos, applied_damage
 
     
     async def run(self):
@@ -370,17 +779,20 @@ class Battle:
             if side.has_trait('giant', amount=9):
                 for fighter in side.fighters:
                     if fighter.has_trait('giant'):
-                        fighter.hp = fighter.hp * (1 + 2)
+                        fighter.hp = int(fighter.hp * (1 + 2))
+                        fighter.max_hp = fighter.hp
                 trait_messages[side.name].append(trait_message('giant', effect=2))
             elif side.has_trait('giant', amount=6):
                 for fighter in side.fighters:
                     if fighter.has_trait('giant'):
-                        fighter.hp = fighter.hp * (1 + 1)
+                        fighter.hp = int(fighter.hp * (1 + 1))
+                        fighter.max_hp = fighter.hp
                 trait_messages[side.name].append(trait_message('giant', effect=1))
             elif side.has_trait('giant', amount=3):
                 for fighter in side.fighters:
                     if fighter.has_trait('giant'):
-                        fighter.hp = fighter.hp * (1 + 0.5)
+                        fighter.hp = int(fighter.hp * (1 + 0.5))
+                        fighter.max_hp = fighter.hp
                 trait_messages[side.name].append(trait_message('giant', effect=0))
 
         msg = ''
@@ -407,6 +819,9 @@ class Battle:
 
                 for attacker in side.alive_fighters():
 
+                    if len(sides[flip(side_index)].alive_fighters()) < 1:
+                        break
+
                     if not attacker.alive:
                         continue
 
@@ -423,16 +838,21 @@ class Battle:
                                     emoji = lib.traits.traits['underdark']['emoji']
                                     await self.message(f'{emoji} {attacker} consumes {target} {emoji}')
 
-                    target = sides[flip(side_index)].next_alive()
-                    if target is None:
-                        break
+                    targets = []
+                    if attacker.has_trait('crusher'):
+                        targets.append(sides[flip(side_index)].alive_fighters()[0])
+                    elif attacker.has_trait('piercer'):
+                        targets.append(sides[flip(side_index)].alive_fighters()[-1])
+                    elif attacker.has_trait('slasher'):
+                        for i in range(2):
+                            targets.append(random.choice(sides[flip(side_index)].alive_fighters()))
 
-                    info = self.attack(attacker, target)
-                    if len(info) > 1:
-                        await self.message(info)
+                    for target in targets:
+                        await self.attack(side, sides[flip(side_index)], attacker, target)
+                        target.action = None
 
                     attacker.action = None
-                    target.action = None
+                    
 
             if not self.attackers.alive() or not self.defenders.alive():
                 break
@@ -465,7 +885,7 @@ class CombatCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    async def ex_attack(self, ctx, target, group_id, stat):
+    async def ex_attack(self, ctx, target, group_id, stat, speed=1):
 
         target = lib.getters.get_user(target, ctx.guild.members)
         user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
@@ -520,7 +940,7 @@ class CombatCog(commands.Cog):
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
         attackers = Group(group_db.id, group_db.name, monsters_db)
 
-        battle = Battle(ctx, stat, defenders, attackers, user_db, target_db)
+        battle = Battle(ctx, stat, defenders, attackers, user_db, target_db, speed=speed)
 
 
         attack_win = await battle.run()
