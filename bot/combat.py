@@ -319,6 +319,10 @@ class Battle:
 
 
     async def kill(self, attacker, target):
+        if not target.alive:
+            target.alive = False
+            return
+
         target.alive = False
 
         if target.side.has_trait('undead', amount=2):
@@ -355,7 +359,7 @@ class Battle:
     async def damage(self, attacker, target, damage):
         target.hp -= damage
 
-        if target.hp < 1 and target.alive:
+        if target.hp < 1:
             await self.kill(attacker, target)
 
     def heal(self, healer, target, healing):
@@ -983,6 +987,8 @@ class Battle:
 
                     if not sides[flip(side_index)].alive():
                         break
+                    if not side.alive():
+                        break
 
                     if side.has_trait('coastal', amount=5):
                         count = 0
@@ -997,8 +1003,13 @@ class Battle:
                         target.action = None
 
                     attacker.action = None
-                    
 
+
+                if not sides[flip(side_index)].alive():
+                    break
+                if not side.alive():
+                    break
+                    
                 if side.has_trait('forest', amount=5):
                     awakened_tree = lib.resources.get_monster('awakened tree')
                     side.fighters = [SummonedFighter(awakened_tree, 1, side)] + side.fighters
