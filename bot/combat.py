@@ -406,6 +406,7 @@ class Battle:
             base_attack_roll = (base_attack_roll, '')
             crit = False
 
+
         attack_roll = base_attack_roll[0] + attacker.mod(self.stat)
         attack_text = ''
 
@@ -507,6 +508,16 @@ class Battle:
                     infos.append(f'⚔️({base_attack_roll[0]}+{attack_roll[0]-base_attack_roll[0]}{attack_roll[1]}=**{attack_roll[0]}**) {attacker} \n 🛡️ \n 🔰({defense_roll[0]}{defense_roll[1]}) {target}')
                     hit = True
 
+        if attacker_side.has_trait('devil', amount=5) and base_attack_roll[0] == 6:
+            info = f'👿 All devils gain +6 in all stats: 👿'
+            for fighter in attacker_side:
+                if fighter.has_trait('devil'):
+                    info += f'{fighter}\n'
+                    for stat, amount in fighter.stats.items():
+                        fighter.stats[stat] += 6
+
+            await self.message(info)
+
         if not hit:
             if target_side.has_trait('celestial', amount=3) and target.has_trait('celestial'):
                 healing_percentage = 0
@@ -520,7 +531,7 @@ class Battle:
                 
                 infos.append(f'👼 All allies of {target} are healed for {int(healing_percentage*100)}% of their maximum hp 👼')
 
-            if attacker_side.has_trait('urban') and target_side.has_trait('urban'):
+            if attacker_side.has_trait('urban', amount=5) and attacker.has_trait('urban'):
                 for stat, amount in attacker.stats.items():
                     attacker.stats[stat] += 1
 
@@ -925,7 +936,7 @@ class Battle:
 
         while True:
             self.round += 1
-            await self.message(f'--- Round {self.round} ---')
+            await self.message(f'--- Round {self.round} ---', force=True)
 
             sides = [self.defenders, self.attackers]
 
@@ -951,7 +962,7 @@ class Battle:
                                     attacker.hp += target.max_hp
                                     for stat, value in target.stats.items():
                                         attacker.stats[stat] += value
-                                    self.kill(attacker, target)
+                                    await self.kill(attacker, target)
                                     emoji = lib.traits.traits['underdark']['emoji']
                                     await self.message(f'{emoji} {attacker} consumes {target} {emoji}')
 
@@ -1064,14 +1075,15 @@ class Battle:
         description = f'**{self.defenders}** vs **{self.attackers}**'
         embed = discord.Embed(title=title, description=description)
 
-        defenders_string = '\n'.join([str(f) for f in self.defenders.fighters])
-        for i in range(len(defenders_string) // 1000 + 1):
-            embed.add_field(name=self.defenders, value=defenders_string[i*1000:(i+1)*1000])
-        
         attackers_string = '\n'.join([str(f) for f in self.attackers.fighters])
         for i in range(len(attackers_string) // 1000 + 1):
             embed.add_field(name=self.attackers, value=attackers_string[i*1000:(i+1)*1000])
 
+        defenders_string = '\n'.join([str(f) for f in self.defenders.fighters])
+        for i in range(len(defenders_string) // 1000 + 1):
+            embed.add_field(name=self.defenders, value=defenders_string[i*1000:(i+1)*1000])
+        
+        
         embed.set_footer(text='Finished, React for Full Summary')
 
         await self.start_message.edit(embed=embed)
