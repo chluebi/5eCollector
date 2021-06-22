@@ -617,7 +617,7 @@ class Battle:
             infos.append(f'👾 All friendly aberrations gain +{bonus_stats} in all stats 👾')
 
 
-        if attacker_side.has_trait('lightning', amount=5) and attacker_side.has_trait('lightning'):
+        if attacker_side.has_trait('lightning', amount=5) and attacker.has_trait('lightning'):
             info = '⚡ Lightning damages additional enemies: ⚡\n'
 
             lightning_targets = []
