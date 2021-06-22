@@ -783,8 +783,8 @@ class Battle:
         full_reduction = 1
         full_reduction_text = ''
         for r, text in reductions:
-            applied_damage /= r
-            full_reduction *= r
+            applied_damage *= r
+            full_reduction /= r
             full_reduction_text += text
         applied_damage = int(applied_damage)
 
