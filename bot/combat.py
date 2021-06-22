@@ -355,7 +355,7 @@ class Battle:
     async def damage(self, attacker, target, damage):
         target.hp -= damage
 
-        if target.hp < 1:
+        if target.hp < 1 and target.alive:
             await self.kill(attacker, target)
 
     def heal(self, healer, target, healing):
