@@ -60,6 +60,7 @@ class Fighter:
     
     def __init__(self, monster_db, group):
         self.group = group
+        self.side = self.group
 
         self.alive = True
         self.action = None
@@ -97,13 +98,77 @@ class Fighter:
         return (self.stats[stat] - 10) // 2
 
     def __str__(self):
+        stat = self.side.battle.stat
+        stat_value = self.stats[stat]
+
         s = ''
         if self.action == 'attack':
             s += '⚔️ '
         if self.action == 'defend':
             s += '🛡️ '
 
-        s += f'#{self.id} {self.name} [{self.hp}/{self.max_hp}]'
+        s += f'#{self.id} {self.name} [{self.hp}/{self.max_hp}] [{stat.capitalize()}: {stat_value}]'
+
+        for trait in self.monster['traits']:
+            if trait in self.group.displayed_traits:
+                s += self.group.displayed_traits[trait]
+
+        if not self.alive:
+            s = f'~~{s}~~'
+
+        return s
+
+class SummonedFighter:
+    
+    def __init__(self, monster, level, group):
+        self.group = group
+        self.side = self.group
+
+        self.alive = True
+        self.action = None
+
+        self.monster = monster
+        if self.monster is None:
+            raise Exception(f'Monster of type {self.monster_db.type} not found')
+        self.level = level
+
+        self.id = 0
+        self.name = self.monster['name']
+        self.type = self.monster['name']
+
+        self.cr = self.monster['cr']
+        self.hp = lib.util.get_hp(self.monster['hp'], self.level)
+        self.max_hp = self.hp
+        self.ac = lib.util.get_ac(self.monster['ac'], self.level)
+
+        self.stats = {
+                    'str': lib.util.get_stat(self.monster, 'str', self.level),
+                    'dex': lib.util.get_stat(self.monster, 'dex', self.level),
+                    'con': lib.util.get_stat(self.monster, 'con', self.level),
+                    'int': lib.util.get_stat(self.monster, 'int', self.level),
+                    'wis': lib.util.get_stat(self.monster, 'wis', self.level),
+                    'cha': lib.util.get_stat(self.monster, 'cha', self.level)
+                    }
+
+        self.image = self.monster['image']
+
+    def has_trait(self, trait):
+        return trait in self.monster['traits']
+
+    def mod(self, stat):
+        return (self.stats[stat] - 10) // 2
+
+    def __str__(self):
+        stat = self.side.battle.stat
+        stat_value = self.stats[stat]
+
+        s = ''
+        if self.action == 'attack':
+            s += '⚔️ '
+        if self.action == 'defend':
+            s += '🛡️ '
+
+        s += f'#{self.id} {self.name} [{self.hp}/{self.max_hp}] [{stat.capitalize()}: {stat_value}]'
 
         for trait in self.monster['traits']:
             if trait in self.group.displayed_traits:
@@ -205,7 +270,9 @@ class Battle:
         self.ctx = ctx
 
         self.defenders = defenders
+        self.defenders.battle = self
         self.attackers = attackers
+        self.attackers.battle = self
 
         self.def_user_db = def_user_db
         self.att_user_db = att_user_db
@@ -250,14 +317,46 @@ class Battle:
             await self.start_message.edit(embed=embed)
             await asyncio.sleep(display_length)
 
-    def kill(self, attacker, target):
+
+    async def kill(self, attacker, target):
         target.alive = False
+
+        if target.side.has_trait('undead', amount=2):
+            if target.side.has_trait('undead', amount=10):
+                survival_chance = 0.5
+                hp = 0.5
+            elif target.side.has_trait('undead', amount=8):
+                survival_chance = 0.4
+                hp = 0.25
+            elif target.side.has_trait('undead', amount=6):
+                survival_chance = 0.3
+                hp = 0.2
+            elif target.side.has_trait('undead', amount=4):
+                survival_chance = 0.2
+                hp = 0.15
+            elif target.side.has_trait('undead', amount=2):
+                survival_chance = 0.1
+                hp = 0.10
+
+            if random.random() < survival_chance:
+                new_hp = int(target.max_hp*hp)
+                target.alive = True
+                target.hp = new_hp
+                await self.message(f'🧟 {target} is resurrected. 🧟')
+            else:
+                await self.message(f'🧟 {target} fails resurrection 🧟')
+
+        if target.has_trait('radiant'):
+            for fighter in target.side.alive_fighters():
+                fighter.hp = fighter.max_hp
+                await self.message(f'😇 All allies of {target} have been healed to full health. 😇')
+        
     
-    def damage(self, attacker, target, damage):
+    async def damage(self, attacker, target, damage):
         target.hp -= damage
 
         if target.hp < 1:
-            self.kill(attacker, target)
+            await self.kill(attacker, target)
 
     def heal(self, healer, target, healing):
         if target.hp < 1:
@@ -355,7 +454,7 @@ class Battle:
             elif target_side.has_trait('acid', amount=3):
                 damage = 5
 
-            self.damage(target, attacker, damage)
+            await self.damage(target, attacker, damage)
             infos.append(f'❇️ {attacker} takes **{damage}** bonus damage from attacking an acid monster ❇️')
 
 
@@ -417,9 +516,16 @@ class Battle:
                     healing_percentage = 0.1
 
                 for monster in target_side.alive_fighters():
-                    self.heal(attacker, monster, healing_percentage*monster.max_hp)
+                    self.heal(attacker, monster, int(healing_percentage*monster.max_hp))
                 
                 infos.append(f'👼 All allies of {target} are healed for {int(healing_percentage*100)}% of their maximum hp 👼')
+
+            if attacker_side.has_trait('urban') and target_side.has_trait('urban'):
+                for stat, amount in attacker.stats.items():
+                    attacker.stats[stat] += 1
+
+                infos.append(f'🏙️ {attacker} gets an increase in all stats by 1 🏙️')
+
 
         await self.message('\n\n'.join(infos))
 
@@ -475,7 +581,7 @@ class Battle:
             bonus_targets = [target] + target_side.adjacent(target)
 
             for t in bonus_targets:
-                self.damage(attacker, t, bonus_damage)
+                await self.damage(attacker, t, bonus_damage)
 
             bonus_targets_text = ', '.join([str(bonus_target) for bonus_target in bonus_targets])
             
@@ -559,7 +665,7 @@ class Battle:
                 elif attacker_side.has_trait('poison', amount=2):
                     bonus_damage = 4
 
-                self.damage(attacker, target, bonus_damage) 
+                await self.damage(attacker, target, bonus_damage) 
                 infos.append(f'🎯💚 {target} takes **{bonus_damage}** bonus damage 💚🎯')
 
 
@@ -671,7 +777,7 @@ class Battle:
             full_reduction_text += text
         applied_damage = int(applied_damage)
 
-        self.damage(attacker, target, applied_damage)
+        await self.damage(attacker, target, applied_damage)
 
         applied_multiplier = full_multiplier/full_reduction
         full_multiplier = round(full_multiplier*100)/100
@@ -862,8 +968,89 @@ class Battle:
                         await self.attack(side, sides[flip(side_index)], attacker, target)
                         target.action = None
 
+                    targets = []
+
+                    if not sides[flip(side_index)].alive():
+                        break
+
+                    if side.has_trait('coastal', amount=5):
+                        count = 0
+                        for i in [ally for ally in side.adjacent(attacker) if ally.has_trait('coastal')]:
+                            targets.append(random.choice(sides[flip(side_index)].alive_fighters()))
+                            count += 1
+                        if count > 0:
+                            await self.message(f'🏝️ {attacker} gains {count} bonus attacks on random enemies. 🏝️')
+
+                    for target in targets:
+                        await self.attack(side, sides[flip(side_index)], attacker, target)
+                        target.action = None
+
                     attacker.action = None
                     
+
+                if side.has_trait('forest', amount=5):
+                    awakened_tree = lib.resources.get_monster('awakened tree')
+                    side.fighters = [SummonedFighter(awakened_tree, 1, side)] + side.fighters
+                    await self.message(f'🌲 An awakened tree has been summoned for {side} 🌲')
+                
+                if side.has_trait('elemental', amount=3):
+                    if side.has_trait('elemental', amount=9):
+                        max_cr = 10
+                    elif side.has_trait('elemental', amount=6):
+                        max_cr = 4
+                    elif side.has_trait('elemental', amount=3):
+                        max_cr = 2
+
+                    elementals = [monster for monster_name, monster in lib.resources.monsters.items() if 'elemental' in monster['traits']]
+                    elementals = [elemental for elemental in elementals if elemental['cr'] < max_cr]
+                    elemental = random.choice(elementals)
+                    fighter = SummonedFighter(elemental, 1, side)
+                    side.fighters = [fighter] + side.fighters
+                    await self.message(f'🌀 {fighter} has been summoned for {side} 🌀')
+
+                if side.has_trait('fey', amount=3):
+                    if side.has_trait('fey', amount=9):
+                        amount = 3
+                    elif side.has_trait('fey', amount=6):
+                        amount = 2
+                    elif side.has_trait('fey', amount=3):
+                        amount = 1
+
+                    pixie = lib.resources.get_monster('pixie')
+                    pixies = [SummonedFighter(pixie, 1, side)]
+                    await self.message(f'✨ {amount} pixies have been summoned for {side} ✨')
+
+
+                if side.has_trait('grassland', amount=5):
+                    info = '🥦 Grassland creatures heal for part of their maximum hp: 🥦\n'
+                    for fighter in side.alive_fighters():
+                        if fighter.has_trait('grassland'):
+                            healing = int(fighter.max_hp * 0.05)
+                            self.heal(fighter, fighter, healing)
+                            info += f'**{healing}** healed by {fighter}'
+                    await self.message(info)
+
+                
+                if side.has_trait('plant', amount=3):
+                    if side.has_trait('plant', amount=9):
+                        healing = 0.3
+                    elif side.has_trait('plant', amount=6):
+                        healing = 0.2
+                    elif side.has_trait('plant', amount=3):
+                        healing = 0.1
+
+                    most_damage = 0
+                    most_damaged = None
+
+                    for fighter in side.alive_fighters():
+                        if most_damage < fighter.max_hp - fighter.hp:
+                            most_damage = fighter.max_hp - fighter.hp
+                            most_damaged = fighter
+                    
+                    if most_damaged is not None:
+                        self.heal(fighter, fighter, int(fighter.max_hp * healing))
+                        await self.message(f'🌱 **{int(fighter.max_hp * healing)}** healing for {fighter}')
+
 
             if not self.attackers.alive() or not self.defenders.alive():
                 break
@@ -877,8 +1064,13 @@ class Battle:
         description = f'**{self.defenders}** vs **{self.attackers}**'
         embed = discord.Embed(title=title, description=description)
 
-        embed.add_field(name=self.defenders, value='\n'.join([str(f) for f in self.defenders.fighters]))
-        embed.add_field(name=self.attackers, value='\n'.join([str(f) for f in self.attackers.fighters]))
+        defenders_string = '\n'.join([str(f) for f in self.defenders.fighters])
+        for i in range(len(defenders_string) // 1000 + 1):
+            embed.add_field(name=self.defenders, value=defenders_string[i*1000:(i+1)*1000])
+        
+        attackers_string = '\n'.join([str(f) for f in self.attackers.fighters])
+        for i in range(len(attackers_string) // 1000 + 1):
+            embed.add_field(name=self.attackers, value=attackers_string[i*1000:(i+1)*1000])
 
         embed.set_footer(text='Finished, React for Full Summary')
 

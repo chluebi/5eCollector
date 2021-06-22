@@ -216,7 +216,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'If an urban creature fails an attack, they gain +1 in the stat they attacked with.'
+                        'text': 'If an urban creature fails an attack, they gain +1 in all stats.'
                     }
                 ],
                 'note': ''
@@ -292,23 +292,23 @@ traits = {
                 'effects': [
                     {
                         'amount': 2,
-                        'text': '5% chance to be resurrected with 10% of their health'
+                        'text': '10% chance to be resurrected with 10% of their maximum health'
                     },
                     {
                         'amount': 4,
-                        'text': '10% chance to be resurrected with 15% of their health'
+                        'text': '20% chance to be resurrected with 15% of their maximum health'
                     },
                     {
                         'amount': 6,
-                        'text': '15% chance to be resurrected with 20% of their health'
+                        'text': '30% chance to be resurrected with 20% of their maximum health'
                     },
                     {
                         'amount': 8,
-                        'text': '20% chance to be resurrected with 25% of their health'
+                        'text': '40% chance to be resurrected with 25% of their maximum health'
                     },
                     {
                         'amount': 10,
-                        'text': '25% chance to be resurrected with 50% of their health'
+                        'text': '50% chance to be resurrected with 50% of their maximum health'
                     }
                 ],
                 'note': ''
