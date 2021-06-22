@@ -287,13 +287,13 @@ class Battle:
         embed.add_field(name=f'Round {self.round}⏲️', value=value, inline=False)
 
         if len(self.attackers.alive_fighters()) > 0:
-            attackers_visual = '\n'.join([str(f) if f.action is None else f'**{f}**' for f in self.attackers.alive_fighters() ])
+            attackers_visual = '\n\n'.join([str(f) if f.action is None else f'**{f}**' for f in self.attackers.alive_fighters() ])
         else:
             attackers_visual = '[empty]'
         embed.add_field(name=f'Attackers: {self.attackers}', value=attackers_visual)
 
         if len(self.defenders.alive_fighters()) > 0:
-            defenders_visual = '\n'.join([str(f) if f.action is None else f'**{f}**' for f in self.defenders.alive_fighters()])
+            defenders_visual = '\n\n'.join([str(f) if f.action is None else f'**{f}**' for f in self.defenders.alive_fighters()])
         else:
             defenders_visual = '[empty]'
         embed.add_field(name=f'Defenders: {self.defenders}', value=defenders_visual)
