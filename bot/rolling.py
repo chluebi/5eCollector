@@ -16,6 +16,48 @@ class RollCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def roll_task(ctx, delay):
+        await asyncio.sleep(delay*3)
+        user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
+
+        db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+1)
+
+        monster = lib.resources.random_monster()
+        embed = lib.embeds.generate_monster_embed(monster)
+
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+        embed.set_footer(text=f'only catchable by {ctx.message.author}')
+
+        message = await ctx.send(embed=embed)
+
+        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id, time.time())
+        await message.add_reaction('🗨️')
+
+        def check(reaction, user):
+            return user.id == ctx.message.author.id and reaction.message.id == message.id and str(reaction.emoji) == '🗨️'
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=config['game']['rolling']['roll_grace'], check=check)
+        except asyncio.TimeoutError:
+            embed = lib.embeds.generate_monster_embed(monster)
+            await message.edit(embed=embed)
+        else:
+            free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, message.id)
+
+            db.FreeMonster.remove(free_monster_db.id)
+            owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
+            db.Monster.create(free_monster_db.type, 1, ctx.guild.id, owner_id)
+
+            monster = lib.resources.get_monster(free_monster_db.type)
+
+            embed = lib.embeds.generate_monster_embed(monster)
+
+            embed.set_author(name=str(user), icon_url=user.avatar_url)
+            embed.set_footer(text=f'caught by {user}')
+            await message.edit(embed=embed)
+            await message.remove_reaction('🗨️', ctx.me)
+
+
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
@@ -37,42 +79,7 @@ class RollCog(commands.Cog):
                 else:
                     db.User.roll(ctx.message.author.id, ctx.guild.id, user_db.rolls-1, None)
 
-            db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+1)
-
-            monster = lib.resources.random_monster()
-            embed = lib.embeds.generate_monster_embed(monster)
-
-            embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
-            embed.set_footer(text=f'only catchable by {ctx.message.author}')
-
-            message = await ctx.send(embed=embed)
-
-            db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id, time.time())
-            await message.add_reaction('🗨️')
-
-            def check(reaction, user):
-                return user.id == ctx.message.author.id and reaction.message.id == message.id and str(reaction.emoji) == '🗨️'
-
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=config['game']['rolling']['roll_grace'], check=check)
-            except asyncio.TimeoutError:
-                embed = lib.embeds.generate_monster_embed(monster)
-                await message.edit(embed=embed)
-            else:
-                free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, message.id)
-
-                db.FreeMonster.remove(free_monster_db.id)
-                owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
-                db.Monster.create(free_monster_db.type, 1, ctx.guild.id, owner_id)
-
-                monster = lib.resources.get_monster(free_monster_db.type)
-
-                embed = lib.embeds.generate_monster_embed(monster)
-
-                embed.set_author(name=str(user), icon_url=user.avatar_url)
-                embed.set_footer(text=f'caught by {user}')
-                await message.edit(embed=embed)
-                await message.remove_reaction('🗨️', ctx.me)
+            self.bot.loop.create_task(RollCog.roll_task(ctx, r))
                 
 
     @commands.Cog.listener()
