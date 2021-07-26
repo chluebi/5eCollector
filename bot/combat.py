@@ -1168,6 +1168,8 @@ class CombatCog(commands.Cog):
 
         attackers_db = monsters_db
         attackers = Group(group_db.id, group_db.name, attackers_db)
+        for m in attackers_db:
+            db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
 
         battle = Battle(ctx, stat, defenders, attackers, user_db, target_db, speed=speed)
 
@@ -1178,9 +1180,6 @@ class CombatCog(commands.Cog):
             db.Chosen.remove(chosen_db.id)
             for m in defenders_db:
                 db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
-
-        for m in attackers_db:
-            db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
 
         await battle.start_message.add_reaction('✔️')
         def check(reaction, user):
