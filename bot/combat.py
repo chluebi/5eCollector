@@ -1099,8 +1099,9 @@ class Battle:
         defenders_string = '\n'.join([str(f) + f' **[Damage: {f.damage}]**' for f in self.defenders.fighters])
         for i in range(len(defenders_string) // 1000 + 1):
             embed.add_field(name=self.defenders, value=defenders_string[i*1000:(i+1)*1000])
-        
-        
+
+        embed.add_field(name='Result', value=self.history[-1])
+
         embed.set_footer(text='Finished, React for Full Summary')
 
         await self.start_message.edit(embed=embed)
