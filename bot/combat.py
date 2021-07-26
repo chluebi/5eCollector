@@ -1148,23 +1148,26 @@ class CombatCog(commands.Cog):
         group_db = db.Group.get(chosen_db.group_id)
         group_monsters_db = db.GroupMonster.get_by_group(chosen_db.group_id)
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
-        defenders = Group(group_db.id, group_db.name, monsters_db)
+        monsters_db = [m for m in monsters_db if not time.time() < m.exhausted_timestamp]
+        defenders_db = monsters_db
+        defenders = Group(group_db.id, group_db.name, defenders_db)
 
-
-        group_monsters_db = db.GroupMonster.get_by_group(group_id)
-
-        if len(group_monsters_db) < 1:
-            await ctx.message.channel.send(f'No monsters in group with group-id ``{group_id}`` found.')
-            return
-
-        if len(group_monsters_db) > 10:
-            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
-            return
-
+        
         group_db = db.Group.get(group_id)
         group_monsters_db = db.GroupMonster.get_by_group(group_id)
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
-        attackers = Group(group_db.id, group_db.name, monsters_db)
+        monsters_db = [m for m in monsters_db if not time.time() < m.exhausted_timestamp]
+
+        if len(monsters_db) < 1:
+            await ctx.message.channel.send(f'No ready monsters in group with group-id ``{group_id}`` found.')
+            return
+
+        if len(monsters_db) > 10:
+            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
+            return
+
+        attackers_db = monsters_db
+        attackers = Group(group_db.id, group_db.name, attackers_db)
 
         battle = Battle(ctx, stat, defenders, attackers, user_db, target_db, speed=speed)
 
@@ -1173,9 +1176,11 @@ class CombatCog(commands.Cog):
 
         if attack_win:
             db.Chosen.remove(chosen_db.id)
-            #db.Monster.exhaust(boss_db.monster_id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
-
-            glory = lib.util.get_glory(chosen_db.created_timestamp)
+            for m in defenders_db:
+                db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+                
+        for m in attackers_db:
+            db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
 
         await battle.start_message.add_reaction('✔️')
         def check(reaction, user):
@@ -1186,7 +1191,6 @@ class CombatCog(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.message.remove_reaction('✔️', ctx.me)
         else:
-            summary_msg =''
             formatted_message = ['']
             for m in battle.history:
                 if len(formatted_message[-1]) + len(m) > 1800:
