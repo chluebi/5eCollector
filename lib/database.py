@@ -89,6 +89,16 @@ def create_tables(conn):
         );
         ''',
         '''
+        CREATE TABLE groups (
+            id SERIAL UNIQUE NOT NULL,
+            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
+            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT,
+            description TEXT,
+            favorite BOOLEAN
+        )
+        ''',
+        '''
         CREATE TABLE chosen (
             id SERIAL UNIQUE NOT NULL,
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
@@ -106,16 +116,6 @@ def create_tables(conn):
             channel_id bigint,
             message_id bigint,
             created_timestamp double precision
-        )
-        ''',
-        '''
-        CREATE TABLE groups (
-            id SERIAL UNIQUE NOT NULL,
-            guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
-            owner_id bigint REFERENCES users(id) ON DELETE CASCADE,
-            name TEXT,
-            description TEXT,
-            favorite BOOLEAN
         )
         ''',
         '''
