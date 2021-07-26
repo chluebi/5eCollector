@@ -65,6 +65,8 @@ class Fighter:
         self.alive = True
         self.action = None
 
+        self.damage = 0
+
         self.monster_db = monster_db
         self.monster = lib.resources.get_monster(self.monster_db.type)
         if self.monster is None:
@@ -126,6 +128,8 @@ class SummonedFighter:
 
         self.alive = True
         self.action = None
+
+        self.damage = 0
 
         self.monster = monster
         if self.monster is None:
@@ -358,6 +362,8 @@ class Battle:
     
     async def damage(self, attacker, target, damage):
         target.hp -= damage
+
+        attacker.damage += damage
 
         if target.hp < 1:
             await self.kill(attacker, target)
@@ -798,7 +804,7 @@ class Battle:
         full_multiplier = round(full_multiplier*100)/100
         full_reduction = round(full_reduction*100)/100
 
-        damage_info = f'**{full_damage}**{full_multiplier_text} damage from{attacker}'
+        damage_info = f'**{full_damage}**{full_multiplier_text} damage from {attacker}'
 
         if applied_damage != full_damage:
             damage_info += f'\n**{applied_damage}**{full_reduction_text} damage taken by {target}'
@@ -1086,11 +1092,11 @@ class Battle:
         description = f'**{self.defenders}** vs **{self.attackers}**'
         embed = discord.Embed(title=title, description=description)
 
-        attackers_string = '\n'.join([str(f) for f in self.attackers.fighters])
+        attackers_string = '\n'.join([str(f) + f' **[Damage: {f.damage}]**' for f in self.attackers.fighters])
         for i in range(len(attackers_string) // 1000 + 1):
             embed.add_field(name=self.attackers, value=attackers_string[i*1000:(i+1)*1000])
 
-        defenders_string = '\n'.join([str(f) for f in self.defenders.fighters])
+        defenders_string = '\n'.join([str(f) + f' **[Damage: {f.damage}]**' for f in self.defenders.fighters])
         for i in range(len(defenders_string) // 1000 + 1):
             embed.add_field(name=self.defenders, value=defenders_string[i*1000:(i+1)*1000])
         
