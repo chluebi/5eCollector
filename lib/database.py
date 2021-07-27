@@ -115,7 +115,8 @@ def create_tables(conn):
             guild_id bigint REFERENCES guilds(id) ON DELETE CASCADE,
             channel_id bigint,
             message_id bigint,
-            created_timestamp double precision
+            created_timestamp double precision,
+            owner_id bigint
         )
         ''',
         '''
@@ -623,7 +624,7 @@ class Chosen:
 class FreeMonster:
 
     def __init__(self, row):
-        self.id, self.type, self.guild_id, self.channel_id, self.message_id, self.created_timestamp = row
+        self.id, self.type, self.guild_id, self.channel_id, self.message_id, self.created_timestamp, self.owner_id = row
 
     @staticmethod
     def get(guild_id, channel_id, message_id):
@@ -656,10 +657,10 @@ class FreeMonster:
         return [FreeMonster(row) for row in rows]
 
     @staticmethod
-    def create(typ, guild_id, channel_id, message_id, created_timestamp):
+    def create(typ, guild_id, owner_id, channel_id, message_id, created_timestamp):
         cur = conn.cursor()
-        command = '''INSERT INTO free_monsters(type, guild_id, channel_id, message_id, created_timestamp) VALUES (%s, %s, %s, %s, %s);'''
-        cur.execute(command, (typ, guild_id, channel_id, message_id, created_timestamp))
+        command = '''INSERT INTO free_monsters(type, guild_id, owner_id, channel_id, message_id, created_timestamp) VALUES (%s, %s, %s, %s, %s, %s);'''
+        cur.execute(command, (typ, guild_id, owner_id, channel_id, message_id, created_timestamp))
         conn.commit()
         cur.close()
 

@@ -17,7 +17,7 @@ class RollCog(commands.Cog):
         self.bot = bot
 
     async def roll_task(ctx, delay):
-        await asyncio.sleep(delay*3)
+        await asyncio.sleep(delay*2)
         user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
 
         db.User.set_score(ctx.message.author.id, ctx.guild.id, user_db.score+1)
@@ -26,36 +26,17 @@ class RollCog(commands.Cog):
         embed = lib.embeds.generate_monster_embed(monster)
 
         embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
-        embed.set_footer(text=f'only catchable by {ctx.message.author}')
+        embed.set_footer(text=f'🛡️ only catchable by {ctx.message.author} 🛡️')
 
         message = await ctx.send(embed=embed)
 
-        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.message.channel.id, message.id, time.time())
+        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.author.id, ctx.message.channel.id, message.id, time.time())
         await message.add_reaction('🗨️')
 
-        def check(reaction, user):
-            return user.id == ctx.message.author.id and reaction.message.id == message.id and str(reaction.emoji) == '🗨️'
+        await asyncio.sleep(config['game']['rolling']['roll_grace'])
 
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=config['game']['rolling']['roll_grace'], check=check)
-        except asyncio.TimeoutError:
-            embed = lib.embeds.generate_monster_embed(monster)
-            await message.edit(embed=embed)
-        else:
-            free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, message.id)
-
-            db.FreeMonster.remove(free_monster_db.id)
-            owner_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
-            db.Monster.create(free_monster_db.type, 1, ctx.guild.id, owner_id)
-
-            monster = lib.resources.get_monster(free_monster_db.type)
-
-            embed = lib.embeds.generate_monster_embed(monster)
-
-            embed.set_author(name=str(user), icon_url=user.avatar_url)
-            embed.set_footer(text=f'caught by {user}')
-            await message.edit(embed=embed)
-            await message.remove_reaction('🗨️', ctx.me)
+        embed.set_footer(text='🔓 Uncaught 🔓')
+        await message.edit(embed=embed)
 
 
     @commands.command()
@@ -86,6 +67,7 @@ class RollCog(commands.Cog):
     async def on_ready(self):
         self.remove_expired.start()
 
+
     @tasks.loop(seconds=config['game']['rolling']['expire_cooldown'])
     async def remove_expired(self):
         expired_monsters_db = db.FreeMonster.get_expired(time.time() - config['game']['rolling']['expire_cooldown'])
@@ -97,6 +79,8 @@ class RollCog(commands.Cog):
 
             guild = self.bot.get_guild(expired_monster_db.guild_id)
             channel = guild.get_channel(expired_monster_db.channel_id)
+            if channel is None:
+                continue
             message = await channel.fetch_message(expired_monster_db.message_id)
 
             await message.edit(embed=embed)
@@ -129,8 +113,6 @@ class CatchCog(commands.Cog):
             if user_db is None:
                 return
 
-            #id, user_id, _, score, rolls, roll_timestamp, catches, catch_timestamp = row
-
             if user_db.catches < 1:
                 catch_countdown = (user_db.catch_timestamp + config['game']['rolling']['catch_cooldown']) - time.time()
                 if catch_countdown > 0:
@@ -151,7 +133,7 @@ class CatchCog(commands.Cog):
             if free_monster_db is None:
                 return
 
-            if time.time() < free_monster_db.created_timestamp + config['game']['rolling']['roll_grace']:
+            if user.id != free_monster_db.owner_id and time.time() < free_monster_db.created_timestamp + config['game']['rolling']['roll_grace']:
                 grace = free_monster_db.created_timestamp + config['game']['rolling']['roll_grace'] - time.time()
                 await ctx.message.channel.send(f'This Monster can only be caught by their roller, retry in {lib.time_handle.seconds_to_text(grace)}.')
                 return
@@ -165,7 +147,7 @@ class CatchCog(commands.Cog):
             embed = lib.embeds.generate_monster_embed(monster)
 
             embed.set_author(name=str(user), icon_url=user.avatar_url)
-            embed.set_footer(text=f'caught by {user}')
+            embed.set_footer(text=f'🎯 caught by {user} 🎯')
             await ctx.message.edit(embed=embed)
             await ctx.message.remove_reaction('🗨️', ctx.me)
 
