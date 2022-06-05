@@ -1,1 +1,1 @@
-import scripts.database.migrate_to_gracerolls
+import scripts.database.init
