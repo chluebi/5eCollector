@@ -21,7 +21,7 @@
         </div>
         <div class="section grid-container" id="tutorial">
             <div class="section-title">
-                Tutorial
+                Tutorial - Basics
             </div>
             <div class="command">
                 5eTools is a bot focused on collecting monsters from the 5e.tools Bestiary.
@@ -44,40 +44,191 @@
                 <div class="code">
                     col me
                 </div>
-                not only reveals your new monsters but the fact that your rolls and catches reset after a certain duration. <br>
+                This shows your remaining rolls and catches and their cooldowns.
+                <br>
+                And with
+                <div class="code">
+                    col me monsters
+                </div>
+                You can see all the monsters you've caught.
+                <br>
                 Running
                 <div class="code">
-                    col view [monster-id]
+                    col view (monster-id)
                 </div>
-                gives you an overview of any creature (not just your own!). 
-                The "monster-id" can be found to the left of all of your creatures.
+                gives you an overview of any monster (not just your own!). 
+                The "monster-id" can be found to the left of all of your monsters.
                 For example in
                 <div class="code">
                     #12 Mimic [Cr: 2]
                 </div>
                 The ID is 12. <br>
-                Wondering what all those stats like <b>STR</b> and <b>AC</b> mean? Combat. <br> 
-                Any member of a server can choose a <b>Chosen</b> who will gather <b>Glory</b> which
-                will converted back into points once that chosen is defeated or replaced.
-                Run 
-                <div class="code">
-                    col chosen [monster-id]
-                </div>
-                to select your chosen. They will now gather <b>Glory</b>, the longer they have been your chosen, the more glory they generate.
+            </div>
+            <div class="section-title">
+                Tutorial - Groups, Chosen and Combat
+            </div>
+            <div class="command">
+                Monsters can be grouped into groups where each monster can be part of many groups.
                 <br>
-                A Chosen's glory streak is broken once they brought to zero hp or replaced by a different chosen.
-                That means it is in your interest to defeat your friends' Chosen (if you want to stop them from 
-                gaining points at least).
+                Create a new Group with
                 <div class="code">
-                    col attack [player] [your-monster-id] [stat:("str"|"dex"|"con"|"int"|"wis"|"cha")]
+                    col group create (name) [description]
                 </div>
-                Combat goes through three phases: <br>
-                <b>Phase 1:</b> Your creature makes a skill-check against the Chosen. 
-                If they win, they proceed to the next phase. <br>
-                <b>Phase 2:</b> Your creature makes a skill-check against the AC (Armor Class) of the Chosen.
-                If they win, they proceed to the next phase. <br>
-                <b>Phase 3:</b> Your creature makes a skill-check to determine the damage they deal to the Chosen.
-                They also have the chance to points from the Chosen's owner if the Chosen has a lot of glory.
+                You can now see this group when you call
+                <div class="code">
+                    col me groups
+                </div>
+                And you can view a specific group with
+                <div class="code">
+                    col group view (group-id)
+                </div>
+                To actually make a group interesting, you probably want to add monsters to a group with
+                <div class="code">
+                    col group add (group-id) (monster-id)
+                </div>
+                A group can hold as many monsters as you want, 
+                but so that you can use it in combat it may hold no more than 10 monsters.
+                <br>
+                Combat works via something called "Chosen".
+                You may have at most have one chosen group at a time.
+                This group will collect "glory" as long as it stands undefeated in combat.
+                Choose a chosen group with
+                <div class="code">
+                    col chosen (group-id)
+                </div>
+                If you have already a group as your chosen, this will remove that current group
+                and replace it with the new one.
+                To attack another player (or yourself) you can call
+                <div class="code">
+                    col attack (target-player) (attacking group-id) (stat) [speed]
+                </div>
+                What exactly is a "stat" or "statistic"?
+                Each monster has different values for each one of the six stats: STR, DEX, CON, INT, WIS and CHA.
+                Choosing a specific stat will ensure the battle will be held in stat, so it is important
+                to know what your monsters excel at when attacking.
+                <br>
+                Starting an attack starts a longer battle sequence where the creatures fight until one side is completely exhausted.
+                <br>
+                For longer battles, it is advisable to use the speed modifier.
+            </div>
+            <div class="section grid-container" id="tutorial">
+                <div class="section-title">
+                    Tutorial - Advanced Information
+                </div>
+                If you are searching for a specific monster it may also be useful
+                to look through all available monsters as follows:
+                <div class="code">
+                    col monsters
+                </div>
+                <div class="code">
+                    col monster (monster-name|monster-id)
+                </div>
+                Searching through all your monsters can be quite tedious at some point, which is why
+                a number of search and filter options are offered.
+                <br>
+                Examples include:
+                <br>
+                Sorting by strength (descending)
+                <div class="code">
+                    col me monsters sort:str
+                </div>
+                Sorting by strength (ascending)
+                <div class="code">
+                    col me monsters sort:str -
+                </div>
+                Filtering for monsters with specific words in their name
+                <div class="code">
+                    col me monsters filter:dragon
+                </div>
+                Filtering for monsters with specific traits
+                <div class="code">
+                    col me monsters trait:underdark
+                </div>
+                All these sorts and filters can also be combined:
+                <div class="code">
+                    col me monsters filter:dragon trait:underdark sort:str -
+                </div>
+                Note that the same filters can also be used when viewing
+                all monsters instead of only just your monsters and that similar filters exist for groups.
+                <br>
+                If you want some statistics on anything in the game, 
+                you probably want to call the stats command.
+                <div class="code">
+                    col stats (category) [start-index] [number of results] [order: +|-]
+                </div>
+                Here are all categories: <br>
+                points: Ranks players by points <br>
+                glory: Ranks chosens by glory <br>
+                monsters: Ranks players by number of monsters <br>
+                level: Ranks caught monsters by level <br>
+                hp: Ranks caught monsters by hp <br>
+                ac: Ranks caught monsters by ac <br>
+                cr: Ranks caught monsters by cr <br>
+                str/dex/con/int/wis/cha: Ranks caught monsters by str/dex/con/int/wis/cha <br>
+            </div>
+            <div class="section grid-container" id="tutorial">
+                <div class="section-title">
+                    Tutorial - Advanced Management
+                </div>
+                There are a number of options you can do to manage your monsters.
+                <div class="code">
+                    col rename (monster-id) (new name)
+                </div>
+                <div class="code">
+                    col give (receiving player) (monster-id)
+                </div>
+                <div class="code">
+                    col release (monster-id)
+                </div>
+                <div class="code">
+                    col trade (given-monster-id) (receiving-monster-id)
+                </div>
+                There are also several ways to manage your groups.
+                <div class="code">
+                    col remove (group-id) (monster-id) 
+                </div>
+                <div class="code">
+                    col change name (group-id) (new name)
+                </div>
+                <div class="code">
+                    col change description (group-id) (new description)
+                </div>
+                <div class="code">
+                    col change favorite (group-id)
+                </div>
+                <div class="code">
+                    col delete (group-id)
+                </div>
+            </div>
+            <div class="section grid-container" id="tutorial">
+                <div class="section-title">
+                    Tutorial - Advanced Combat
+                </div>
+                Monsters not only have statistics but also traits. <br>
+                Traits become active once enough creatures of that trait are in a single group.
+                You can browse and research traits with
+                <div class="code">
+                    col traits
+                </div>
+                and
+                <div class="code">
+                    col trait (trait-name)
+                </div>
+                Traits are highly powerful and it is advisable to build your attack groups around powerful combinations.
+                <br>
+                Another way to increase your monster's strength is to level them up.
+                This is done by finding three monsters of the same type and combining them as follows:
+                <div class="code">
+                    col combine (monster1-id) (monster2-id) (monster3-id)
+                </div>
+                The new monster will have much more powerful stats and obviously be way cooler.
+                <br>
+                To fully grasp combat, it may be of interest that the basic attacking pattern is very simple:
+                <br>
+                The attacker rolls to see if they get past the armor class of the attacked. <br>
+                If they pass the check, they perform the attack, making the attacked take damage. <br>
+                <br>
+                All other complexity is introduced via traits.
             </div>
         </div>
         <div class="section grid-container" id="reference">
@@ -126,6 +277,12 @@
                                 <div class="description">
                                     Filter by a given text (case insensitive).
                                 </div>
+                                <div class="code">
+                                    t:[trait]
+                                </div>
+                                <div class="description">
+                                    Filter by a given trait.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -171,7 +328,7 @@
                 </div>
                 <div class="command">
                     <div class="code">
-                        col user [user]
+                        col user (user)
                     </div>
                     <div class="description">
                        Gives you an overview of a user.
@@ -179,7 +336,7 @@
                 </div>
                 <div class="command">
                     <div class="code">
-                        col view [monster-id|monster-type]
+                        col view (monster-id|monster-type)
                     </div>
                     <div class="description">
                        Gives you an overview of a monster (by ID) or a monster-type (case sensitive).
@@ -192,51 +349,119 @@
                 </div>
                 <div class="command">
                     <div class="code">
-                        col rename [monster-id] [name]
+                        col rename (monster-id) (name)
                     </div>
                     <div class="description">
                        Rename a monster.
                     </div>
                 </div>
+                <div class="command">
+                    <div class="code">
+                        col group (create|delete) (group-id)
+                    </div>
+                    <div class="description">
+                       Create or delete a group.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col group (create|delete) (group-id)
+                    </div>
+                    <div class="description">
+                       Create or delete a group.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col group change (name|description|favorite) [new value]
+                    </div>
+                    <div class="description">
+                       Edit a group.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col group add (group-ids) (monster-ids) 
+                    </div>
+                    <div class="description">
+                       Add a monster or several monsters to a group or several groups. 
+                       Monster-ids and group-ids may be written in quotes and seperated by spaces.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col group remove (group-ids) (monster-ids) 
+                    </div>
+                    <div class="description">
+                       Remove a monster or several monsters from a group or several groups. 
+                       Monster-ids and group-ids may be written in quotes and seperated by spaces.
+                    </div>
+                </div>
             </div>
-            <div class="command">
-                <div class="code">
-                    col stats ["points"|"monster"|"glory"]
+            <div class="group">
+                <div class="group-title">
+                    Combat
                 </div>
-                <div class="description">
-                   Shows the ranking by a certain statistic.
+                <div class="command">
+                    <div class="code">
+                        col chosen (group-id)
+                    </div>
+                    <div class="description">
+                       Make a group your chosen.
+                    </div>
                 </div>
-            </div>
-            <div class="command">
-                <div class="code">
-                    col chosen [monster-id]
+                <div class="command">
+                    <div class="code">
+                        col attack (target-player) (group-id) (stat) [speed]
+                    </div>
+                    <div class="description">
+                       Attack a target player with the given group.
+                    </div>
                 </div>
-                <div class="description">
-                   Choose a monster as your new chosen. Choosing the current chosen makes them retreat.
+                <div class="command">
+                    <div class="code">
+                        col traits [options]
+                    </div>
+                    <div class="description">
+                        Gives a list of all traits <br>
+                        Filtering and sorting options for groups:
+                        <div class="description">
+                            <div class="code">
+                                s:[monsters]
+                            </div>
+                            <div class="description">
+                                Sort by number of monsters with that trait.
+                            </div>
+                            <div class="code">
+                                -
+                            </div>
+                            <div class="description">
+                                Reverse sorting order.
+                            </div>
+                            <div class="code">
+                                f:[text]
+                            </div>
+                            <div class="description">
+                                Filter by a given text (case insensitive).
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="command">
-                <div class="code">
-                    col attack [player] [your-monster-id] [stat:("str"|"dex"|"con"|"int"|"wis"|"cha")]
+                <div class="command">
+                    <div class="code">
+                        col trait (trait)
+                    </div>
+                    <div class="description">
+                       Gives information on a given trait.
+                    </div>
                 </div>
-                <div class="description">
-                   Attack a player's chosen.
-                </div>
-            </div>
-            <div class="command">
-                <div class="code">
-                    col trade [your-monster-id] [other-monster-id]
-                </div>
-                <div class="description">
-                   Trade one of your monsters for another.
-                </div>
-            </div>
-            <div class="command">
-                <div class="code">
-                    col combine [monster-id] [monster-id] [monster-id]
-                </div>
-                <div class="description">
-                   Combine three monsters of equal type and level into a monster of a higher level.
+                <div class="command">
+                    <div class="code">
+                        col combine (monster1-id) (monster2-id) (monster3-id)
+                    </div>
+                    <div class="description">
+                       Combine three monsters of same type and level to a monster of higher level.
+                    </div>
                 </div>
             </div>
         </div>
