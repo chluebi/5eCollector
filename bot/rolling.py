@@ -30,13 +30,14 @@ class RollCog(commands.Cog):
 
         message = await ctx.send(embed=embed)
 
-        db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.author.id, ctx.message.channel.id, message.id, time.time())
+        id = db.FreeMonster.create(monster['name'], ctx.guild.id, ctx.author.id, ctx.message.channel.id, message.id, time.time())
         await message.add_reaction('🗨️')
 
         await asyncio.sleep(config['game']['rolling']['roll_grace'])
 
-        embed.set_footer(text='🔓 Uncaught 🔓')
-        await message.edit(embed=embed)
+        if db.FreeMonster.get(ctx.guild_id, ctx.author.id, ctx.message.channel.id) is not None:
+            embed.set_footer(text='🔓 Uncaught 🔓')
+            await message.edit(embed=embed)
 
 
     @commands.command()
