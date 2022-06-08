@@ -35,7 +35,7 @@ class RollCog(commands.Cog):
 
         await asyncio.sleep(config['game']['rolling']['roll_grace'])
 
-        if db.FreeMonster.get(ctx.guild_id, ctx.author.id, ctx.message.channel.id) is not None:
+        if db.FreeMonster.get(ctx.guild_id, ctx.message.channel.id, ctx.message.id) is not None:
             embed.set_footer(text='🔓 Uncaught 🔓')
             await message.edit(embed=embed)
 
