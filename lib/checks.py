@@ -47,4 +47,10 @@ async def group_allowed(ctx, group_id):
         await ctx.message.channel.send(f'This Group does not belong to you.')
         return False
 
+    chosen_db = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
+    if chosen_db is not None:
+        if chosen_db.group_id == group_id:
+            await ctx.message.channel.send(f'You are not allowed to edit your chosen group.')
+            return False
+
     return True
