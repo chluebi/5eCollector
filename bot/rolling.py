@@ -114,6 +114,11 @@ class CatchCog(commands.Cog):
             if user_db is None:
                 return
 
+            free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, ctx.message.id)
+
+            if free_monster_db is None:
+                return
+
             if user_db.catches < 1:
                 catch_countdown = (user_db.catch_timestamp + config['game']['rolling']['catch_cooldown']) - time.time()
                 if catch_countdown > 0:
@@ -128,11 +133,6 @@ class CatchCog(commands.Cog):
                     db.User.catch(user.id, ctx.guild.id, user_db.catches-1, None)
 
             db.User.set_score(user.id, ctx.guild.id, user_db.score+10)
-
-            free_monster_db = db.FreeMonster.get(ctx.guild.id, ctx.message.channel.id, ctx.message.id)
-
-            if free_monster_db is None:
-                return
 
             if user.id != free_monster_db.owner_id and time.time() < free_monster_db.created_timestamp + config['game']['rolling']['roll_grace']:
                 grace = free_monster_db.created_timestamp + config['game']['rolling']['roll_grace'] - time.time()
