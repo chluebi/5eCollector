@@ -41,8 +41,6 @@ async def group_allowed(ctx, group_id):
     if group_db is None:
         await ctx.message.channel.send(f'Group with id ``{group_id}`` not found.')
         return False
-    else:
-        return True
 
     user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
     if group_db.owner_id != user_db.id:
