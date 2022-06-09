@@ -1155,7 +1155,6 @@ class CombatCog(commands.Cog):
         group_db = db.Group.get(chosen_db.group_id)
         group_monsters_db = db.GroupMonster.get_by_group(chosen_db.group_id)
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
-        monsters_db = [m for m in monsters_db if not time.time() < m.exhausted_timestamp]
         defenders_db = monsters_db
         defenders = Group(group_db.id, group_db.name, defenders_db)
 
