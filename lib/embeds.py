@@ -736,7 +736,7 @@ def generate_monster_embed(monster):
 def generate_caught_monster_embed(name, monster, owner, level, exhausted_timestamp):
     stars = ''.join(['★' for i in range(level)])
     title = name + ' [CR: ' + monster['visual_cr'] + f'] [{stars}]'
-    description = ', '.join([lib.traits.traits[t]['name'] + ' ' + lib.traits.traits[t]['emoji'] for t in monster['traits']])
+    description = ', '.join([lib.traits.traits[t]['name'].capitalize() + ' ' + lib.traits.traits[t]['emoji'] for t in monster['traits']])
     if name != monster['name']:
         description = monster['name'] + ', ' + description
     embed = discord.Embed(title=title, description=description, url=monster['link'])
