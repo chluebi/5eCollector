@@ -66,49 +66,7 @@ Attacks Remaining: {attack_text}
         glory = lib.util.get_glory(chosen_db.created_timestamp)
         embed.add_field(name=f'Chosen: #{chosen_db.group_id} {group_db.name} [Glory: {glory}] [{len(group_monsters_db)} Monsters]', value=text)
 
-    
-    groups = []
-    groups_db = db.Group.get_by_owner(ctx.guild.id, user_db.id)
-
-    if len(groups_db) > 0:
-        for group_db in groups_db:
-            if not group_db.favorite:
-                continue
-            group_monsters_db = db.GroupMonster.get_by_group(group_db.id)
-            groups.append([group_db, []])
-            for group_monster_db in group_monsters_db:
-                monster_db = db.Monster.get(group_monster_db.monster_id)
-                monster = lib.resources.get_monster(monster_db.type)
-
-                text = monster_full_title(monster_db.id, monster_db.name, monster_db.type, monster_db.level, monster_db.exhausted_timestamp) + '\n'
-
-                groups[-1][1].append(text)
-
-
-    fields = []
-    for group_db, monsters in groups:
-        title = f'Group: #{group_db.id} {group_db.name}'
-        fields.append([title, ''])
-        for monster in monsters:
-            if len(fields[-1][1]) + len(monster) > 1000:
-                fields.append([title, ''])
-
-            fields[-1][1] += monster
-
-    embeds = [embed]
-
-    for name, value in fields:
-        title = f'Group: #{group_db.id} {group_db.name}'
-        if len(embeds[-1].fields) > 3:
-            embed = discord.Embed(title=f'Continuation Groups of {user}', description=f'page {len(embeds) + 1}')
-            embeds.append(embed)
-        if len(value) < 1:
-            value = '[empty]'
-
-        embeds[-1].add_field(name=name, value=value, inline=False)
-
-    for e in embeds:
-        await ctx.message.channel.send(embed=e)
+    await ctx.message.channel.send(embed=embed)
 
 
 async def all_monsters(ctx, options):
