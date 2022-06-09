@@ -40,6 +40,11 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f'This command is on cooldown, you can use it in ``{round(error.retry_after)}`` seconds.')
+        return
+
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.message.channel.send('It seems like this bot has not been initialized on this server, an admin has to run ``col init`` first.')
         logging.warning(error_message)

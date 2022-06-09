@@ -1118,6 +1118,7 @@ class CombatCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def attack(self, ctx, target, group_id, stat, speed=1):
 
         target = lib.getters.get_user(target, ctx.guild.members)

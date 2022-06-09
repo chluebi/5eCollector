@@ -43,6 +43,7 @@ class RollCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 3, commands.BucketType.user)
     async def roll(self, ctx, amount=1):
         
         for r in range(int(amount)):
