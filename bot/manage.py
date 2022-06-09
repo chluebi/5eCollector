@@ -18,6 +18,7 @@ class UserCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 15, commands.BucketType.user)
     async def me(self, ctx, action='view', *options):
         user = ctx.message.author
 
@@ -33,6 +34,7 @@ class UserCog(commands.Cog):
     @commands.command(aliases=['user'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 15, commands.BucketType.user)
     async def userinfo(self, ctx, user: discord.ext.commands.MemberConverter, action='view', *options):
         
         if action in ['monsters', 'monster']:
@@ -60,6 +62,7 @@ class MonsterCog(commands.Cog):
     @commands.command(name='monsters')
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 240, commands.BucketType.user)
     async def all_monsters(self, ctx, *options):
         await lib.embeds.all_monsters(ctx, options)
 
@@ -67,6 +70,7 @@ class MonsterCog(commands.Cog):
     @commands.command(aliases=['monster'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def view(self, ctx, monster):
         try:
             monster_id = int(monster)
@@ -121,6 +125,7 @@ class MonsterCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def rename(self, ctx, monster_id: int, name):
         monster_db = db.Monster.get(monster_id)
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
@@ -143,6 +148,7 @@ class MonsterCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def combine(self, ctx, monster1: int, monster2: int, monster3: int):
         
         if monster1 == monster2 or monster2 == monster3 or monster1 == monster3:
@@ -187,6 +193,7 @@ class MonsterCog(commands.Cog):
     @commands.command(aliases=['gift'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def give(self, ctx, receiver: discord.ext.commands.MemberConverter, given_id: int):
         if receiver is None:
             await ctx.message.channel.send('User not found')
@@ -250,6 +257,7 @@ class MonsterCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def release(self, ctx, given_id: int):
 
         given = db.Monster.get(given_id)
@@ -310,6 +318,7 @@ class MonsterCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def trade(self, ctx, given_id: int, taken_id: int):
         given = db.Monster.get(given_id)
         user_id = db.User.get_by_member(ctx.guild.id, ctx.message.author.id).id
@@ -404,12 +413,14 @@ class TraitCog(commands.Cog):
     @commands.command(name='traits')
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 240, commands.BucketType.user)
     async def all_traits(self, ctx, *options):
         await lib.embeds.all_traits(ctx, options)
 
     @commands.command(name='trait')
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def trait_info(self, ctx, trait_text):
         trait = None
         for name, data in lib.traits.traits.items():
@@ -443,6 +454,7 @@ class GroupCog(commands.Cog):
 
 
     @group_main_command.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def view(self, ctx, group_id: int):
 
         if not await lib.checks.group_exists(ctx, group_id):
@@ -456,6 +468,7 @@ class GroupCog(commands.Cog):
 
 
     @group_main_command.command()
+    @commands.cooldown(1, 3, commands.BucketType.user)
     async def add(self, ctx, groups, monsters):
 
         user_db = db.User.get_by_member(ctx.guild.id, ctx.message.author.id)
@@ -469,7 +482,6 @@ class GroupCog(commands.Cog):
                 continue
             
             if not await lib.checks.group_allowed(ctx, group_id):
-                await ctx.message.channel.send(f'Group with id {group_id} not found in your collection')
                 continue
 
             groups_id.append(group_id)
@@ -520,6 +532,7 @@ class GroupCog(commands.Cog):
         
 
     @group_main_command.command()
+    @commands.cooldown(1, 3, commands.BucketType.user)
     async def remove(self, ctx, group_id: int, monsters):
 
         if not await lib.checks.group_allowed(ctx, group_id):
@@ -557,6 +570,7 @@ class GroupCog(commands.Cog):
         pass
 
     @change.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def name(self, ctx, id: int, new_name):
 
         if len(new_name) > 100:
@@ -571,6 +585,7 @@ class GroupCog(commands.Cog):
         await ctx.message.channel.send('Name successfully changed.')
 
     @change.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def description(self, ctx, id: int, new_description):
 
         if len(new_description) > 500:
@@ -585,6 +600,7 @@ class GroupCog(commands.Cog):
         await ctx.message.channel.send('Description successfully changed.')
 
     @change.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def favorite(self, ctx, id: int):
 
         if not await lib.checks.group_allowed(ctx, id):
@@ -607,6 +623,7 @@ class GroupCog(commands.Cog):
             await ctx.message.channel.send('Group has been unfavorited.')
 
     @group_main_command.command()
+    @commands.cooldown(1, 60, commands.BucketType.user)
     async def create(self, ctx, name, description=''):
 
         if len(name) > 100:
@@ -625,6 +642,7 @@ class GroupCog(commands.Cog):
 
 
     @group_main_command.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def delete(self, ctx, id: int):
 
         if not await lib.checks.group_allowed(ctx, id):

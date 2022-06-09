@@ -16,6 +16,7 @@ class StatsCog(commands.Cog):
     @commands.command()
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def stats(self, ctx, category, start=1, l=10, order='+'):
 
         ranking = []
