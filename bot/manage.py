@@ -469,7 +469,6 @@ class GroupCog(commands.Cog):
                 continue
             
             if not await lib.checks.group_allowed(ctx, group_id):
-                await ctx.message.channel.send(f'Group with id {group_id} not found in your collection')
                 continue
 
             groups_id.append(group_id)
