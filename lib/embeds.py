@@ -716,7 +716,7 @@ def monster_full_title(id, name, type, level, exhausted_timestamp):
 
 def generate_monster_embed(monster):
     title = monster['name'] + ' CR: ' + monster['visual_cr']
-    description = ', '.join([lib.traits.traits[t]['name'] + ' ' + lib.traits.traits[t]['emoji'] for t in monster['traits']])
+    description = ', '.join([lib.traits.traits[t]['name'].capitalize() + ' ' + lib.traits.traits[t]['emoji'] for t in monster['traits']])
     embed = discord.Embed(title=title, description=description, url=monster['link'])
 
     embed.add_field(name='Armor Class', value=monster['ac'], inline=False)
