@@ -21,7 +21,7 @@ logging.basicConfig(handlers=[logging.FileHandler('bot.log', 'a', encoding='utf-
 
 intents = discord.Intents.all()
 
-bot = commands.Bot(command_prefix='col ', intents=intents)
+bot = commands.Bot(command_prefix=['col ', 'Col '], intents=intents)
 bot.remove_command('help')
 
 
