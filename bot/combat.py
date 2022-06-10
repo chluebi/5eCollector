@@ -1208,6 +1208,68 @@ class CombatCog(commands.Cog):
             for m in formatted_message:
                 messages.append(await ctx.message.channel.send(m))
 
+
+    @commands.command(aliases=['friendly'])
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def friendly_attack(self, ctx, target_group_id, group_id, stat, speed=1):
+
+        attacker_user_db = db.User.get_by_member(ctx.guild.id, group_id)
+
+        stat = stat.lower()
+        if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
+            await ctx.message.channel.send(f'Stat *{stat}* is not a valid stat.')
+            return
+
+        group_db = db.Group.get(target_group_id)
+        target_user_db = db.User.get(group_db.owner_id)
+        group_monsters_db = db.GroupMonster.get_by_group(group_db.id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+        defenders_db = monsters_db
+        defenders = Group(group_db.id, group_db.name, defenders_db)
+
+        group_db = db.Group.get(group_id)
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+
+        if len(monsters_db) < 1:
+            await ctx.message.channel.send(f'No ready monsters in group with group-id ``{group_id}`` found.')
+            return
+
+        if len(monsters_db) > 10:
+            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
+            return
+
+        attackers_db = monsters_db
+        attackers = Group(group_db.id, group_db.name, attackers_db)
+        for m in attackers_db:
+            db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+
+        battle = Battle(ctx, stat, defenders, attackers, target_user_db, attacker_user_db, speed=speed)
+
+        attack_win = await battle.run()
+
+        await battle.start_message.add_reaction('✔️')
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == battle.start_message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+        else:
+            formatted_message = ['']
+            for m in battle.history:
+                if len(formatted_message[-1]) + len(m) > 1800:
+                    formatted_message.append(m)
+                else:
+                    formatted_message[-1] += m + '\n'
+
+            messages = []
+            for m in formatted_message:
+                messages.append(await ctx.message.channel.send(m))
+
 def setup(bot):
     bot.add_cog(ChosenCog(bot))
     bot.add_cog(CombatCog(bot))
