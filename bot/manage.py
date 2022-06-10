@@ -62,7 +62,7 @@ class MonsterCog(commands.Cog):
     @commands.command(name='monsters')
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    @commands.cooldown(1, 240, commands.BucketType.user)
+    @commands.cooldown(1, 15, commands.BucketType.user)
     async def all_monsters(self, ctx, *options):
         await lib.embeds.all_monsters(ctx, options)
 
@@ -70,7 +70,7 @@ class MonsterCog(commands.Cog):
     @commands.command(aliases=['monster'])
     @commands.check(lib.checks.guild_exists_check)
     @commands.check(lib.checks.user_exists_check)
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def view(self, ctx, monster):
         try:
             monster_id = int(monster)

@@ -10,6 +10,7 @@ import lib.database as db
 import lib.embeds
 import lib.util
 import lib.traits
+import lib.getters
 
 config = lib.util.config
 
@@ -1161,6 +1162,9 @@ class CombatCog(commands.Cog):
 
         
         group_db = db.Group.get(group_id)
+        if group_db.owner_id != user_db.id:
+            await ctx.message.channel.send(f'The attacking group does not belong to you.')
+            return
         group_monsters_db = db.GroupMonster.get_by_group(group_id)
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
         monsters_db = [m for m in monsters_db if not time.time() < m.exhausted_timestamp]
@@ -1187,6 +1191,100 @@ class CombatCog(commands.Cog):
             db.Chosen.remove(chosen_db.id)
             for m in defenders_db:
                 db.Monster.exhaust(m.id, time.time()+config['game']['combat']['chosen_exhaust_cooldown'])
+
+        await battle.start_message.add_reaction('✔️')
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == battle.start_message.id and str(reaction.emoji) == '✔️'
+
+        try:
+            await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.remove_reaction('✔️', ctx.me)
+        else:
+            formatted_message = ['']
+            for m in battle.history:
+                if len(formatted_message[-1]) + len(m) > 1800:
+                    formatted_message.append(m)
+                else:
+                    formatted_message[-1] += m + '\n'
+
+            messages = []
+            for m in formatted_message:
+                messages.append(await ctx.message.channel.send(m))
+
+
+    @commands.command(aliases=['friendly'])
+    @commands.check(lib.checks.guild_exists_check)
+    @commands.check(lib.checks.user_exists_check)
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def friendly_attack(self, ctx, target_group_id, group_id, stat, speed=1):
+
+        attacker_user_db = db.User.get_by_member(ctx.guild.id, ctx.author.id)
+
+        stat = stat.lower()
+        if stat not in ['str', 'dex', 'con', 'int', 'wis', 'cha']:
+            await ctx.message.channel.send(f'Stat *{stat}* is not a valid stat.')
+            return
+
+        target_group_db = db.Group.get(target_group_id)
+        target_user_db = db.User.get(target_group_db.owner_id)
+        group_monsters_db = db.GroupMonster.get_by_group(target_group_db.id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+        defenders_db = monsters_db
+        defenders = Group(target_group_db.id, target_group_db.name, defenders_db)
+        owner = lib.getters.get_user_by_id(target_user_db.user_id, ctx.guild.members)
+
+        
+        attacker_group_db = db.Group.get(group_id)
+        if attacker_group_db is None:
+            await ctx.message.channel.send(f'Group with id ``{group_id}`` not found.')
+            return
+        if attacker_group_db.owner_id != attacker_user_db.id:
+            await ctx.message.channel.send(f'The attacking group does not belong to you.')
+            return
+        group_monsters_db = db.GroupMonster.get_by_group(group_id)
+        monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
+
+
+        if attacker_group_db.owner_id != target_group_db.owner_id:
+            title = 'Friendly Battle Offer'
+            # given_id, name, type, level, exhausted_timestamp, guild_id, owner_id = given_row
+            description = f'{ctx.message.author} wants to attack ``#{target_group_db.id} {target_group_db.name}`` by {owner.mention}'
+            #taken_id, name, type, level, exhausted_timestamp, guild_id, owner_id = taken_row
+            description += f' with ``#{attacker_group_db.id} {attacker_group_db.name}``'
+
+            embed = discord.Embed(title=title, description=description)
+            embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+
+            message = await ctx.message.channel.send(embed=embed)
+            await message.add_reaction('✔️')
+
+            owner_id = owner.id
+            def check(reaction, user):
+                return user.id == owner_id and reaction.message.id == message.id and str(reaction.emoji) == '✔️'
+
+            try:
+                await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+            except asyncio.TimeoutError:
+                await message.remove_reaction('✔️', ctx.me)
+                title = 'Friendly Battle Offer Declined'
+                embed.set_footer(text=title)
+                await message.edit(embed=embed)
+                return
+           
+
+        if len(monsters_db) < 1:
+            await ctx.message.channel.send(f'No ready monsters in group with group-id ``{group_id}`` found.')
+            return
+
+        if len(monsters_db) > 10:
+            await ctx.message.channel.send(f'Only Groups of up to ``10`` monsters may attack.')
+            return
+
+        attackers = Group(attacker_group_db.id, attacker_group_db.name, monsters_db)
+        battle = Battle(ctx, stat, defenders, attackers, target_user_db, attacker_user_db, speed=speed)
+
+        attack_win = await battle.run()
 
         await battle.start_message.add_reaction('✔️')
         def check(reaction, user):
