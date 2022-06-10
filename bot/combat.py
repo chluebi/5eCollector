@@ -1046,7 +1046,8 @@ class Battle:
                         amount = 1
 
                     pixie = lib.resources.get_monster('pixie')
-                    pixies = [SummonedFighter(pixie, 1, side)]
+                    pixies = [SummonedFighter(pixie, 1, side) for i in range(amount)]
+                    side.fighters = pixies + side.fighters
                     await self.message(f'✨ {amount} pixies have been summoned for {side} ✨')
 
 
