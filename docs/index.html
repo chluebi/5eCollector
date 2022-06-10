@@ -228,7 +228,13 @@
                 The attacker rolls to see if they get past the armor class of the attacked. <br>
                 If they pass the check, they perform the attack, making the attacked take damage. <br>
                 <br>
-                All other complexity is introduced via traits.
+                All other complexity is introduced via traits. <br>
+                If you are unsure about a certain combo or interaction, 
+                you can with the consent of the attacked group owner, have a friendly battle.
+                This does not affect any monster exhaustion or glory.
+                <div class="code">
+                    col friendly (attacked group-id) (attacking group-id) (stat) [speed]
+                </div>
             </div>
         </div>
         <div class="section grid-container" id="reference">
@@ -416,6 +422,14 @@
                     </div>
                     <div class="description">
                        Attack a target player with the given group.
+                    </div>
+                </div>
+                <div class="command">
+                    <div class="code">
+                        col friendly (target-group-id) (group-id) (stat) [speed]
+                    </div>
+                    <div class="description">
+                       Have a friendly battle with the target group.
                     </div>
                 </div>
                 <div class="command">

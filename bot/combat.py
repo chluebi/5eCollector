@@ -1161,6 +1161,9 @@ class CombatCog(commands.Cog):
 
         
         group_db = db.Group.get(group_id)
+        if group_db.owner_id != user_db.id:
+            await ctx.message.channel.send(f'The attacking group does not belong to you.')
+            return
         group_monsters_db = db.GroupMonster.get_by_group(group_id)
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
         monsters_db = [m for m in monsters_db if not time.time() < m.exhausted_timestamp]
@@ -1230,6 +1233,9 @@ class CombatCog(commands.Cog):
         defenders = Group(group_db.id, group_db.name, defenders_db)
 
         group_db = db.Group.get(group_id)
+        if group_db.owner_id != attacker_user_db.id:
+            await ctx.message.channel.send(f'The attacking group does not belong to you.')
+            return
         group_monsters_db = db.GroupMonster.get_by_group(group_id)
         monsters_db = [db.Monster.get(m.monster_id) for m in sorted(group_monsters_db, key=lambda x: x.group_index)]
 
