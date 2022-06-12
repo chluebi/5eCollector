@@ -668,7 +668,7 @@ def monster_full_title(id, name, type, level, exhausted_timestamp):
     if exhausted_timestamp > time.time():
         text += ' 😴'
 
-    text = f'#{id} ' + text
+    text = f'`#{str(id).rjust(4)}` {text}'
 
     return text
 
