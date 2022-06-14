@@ -385,10 +385,11 @@ class Battle:
         if attacker_side.has_trait('shapechanger', amount=10):
             max_stat = 0
             for monster in attacker_side.alive_fighters() + target_side.alive_fighters():
-                max_stat = max(monster['stats'][self.stat])
+                max_stat = max(monster.mod(self.stat), max_stat)
             modifier = (max_stat, '👽')
         elif attacker_side.has_trait('shapechanger', amount=5):
-            modifier = (attacker.mod(self.stat), '👽')
+            if target.mod(self.stat) > attacker.mod(self.stat):
+                modifier = (attacker.mod(self.stat), '👽')
         
         base_attack_roll = random.randint(1, 20)
         #🎯
@@ -418,8 +419,8 @@ class Battle:
             crit = False
 
 
-        attack_roll = base_attack_roll[0] + attacker.mod(self.stat)
-        attack_text = ''
+        attack_roll = base_attack_roll[0] + modifier[0]
+        attack_text = modifier[1]
 
         if attacker_side.has_trait('gith', amount=9) and attacker.has_trait('gith'):
             if attacker.cr < target.cr:
@@ -1046,7 +1047,8 @@ class Battle:
                         amount = 1
 
                     pixie = lib.resources.get_monster('pixie')
-                    pixies = [SummonedFighter(pixie, 1, side)]
+                    pixies = [SummonedFighter(pixie, 1, side) for i in range(amount)]
+                    side.fighters = pixies + side.fighters
                     await self.message(f'✨ {amount} pixies have been summoned for {side} ✨')
 
 

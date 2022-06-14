@@ -26,4 +26,4 @@ def get_hp(base_hp, level):
     return int(base_hp * (level/2 + 1/2))
 
 def get_ac(base_ac, level):
-    return base_ac + level
+    return base_ac + (level-1)
