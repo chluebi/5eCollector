@@ -382,12 +382,12 @@ class Battle:
 
         modifier = (attacker.mod(self.stat), '')
 
-        if attacker_side.has_trait('shapechanger', amount=10):
+        if attacker_side.has_trait('shapechanger', amount=10) and attacker.has_trait('shapechanger'):
             max_stat = 0
             for monster in attacker_side.alive_fighters() + target_side.alive_fighters():
                 max_stat = max(monster.mod(self.stat), max_stat)
             modifier = (max_stat, '👽')
-        elif attacker_side.has_trait('shapechanger', amount=5):
+        elif attacker_side.has_trait('shapechanger', amount=5) and attacker.has_trait('shapechanger'):
             if target.mod(self.stat) > attacker.mod(self.stat):
                 modifier = (attacker.mod(self.stat), '👽')
         
