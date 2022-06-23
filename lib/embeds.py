@@ -270,32 +270,41 @@ async def user_monsters(ctx, user, options):
         if filtered:
             monsters.append(text)
 
-    fields = ['']
-    for monster in monsters:
-        if len(fields[-1]) + len(monster) > 1000:
-            fields.append('')
-        fields[-1] += monster
-
     title += f' ({len(monsters)})'
-    embed = discord.Embed(title=title)
 
-    embeds = [embed]
+    current_page = 0
+    embeds = _create_monsters_embed_list(title, user, monsters)
+    monsters_message = await ctx.send(embed=embeds[current_page])
 
-    for i, field in enumerate(fields, 1):
-        if len(embeds[-1].fields) > 3:
-            embeds.append(discord.Embed(title=f'Monsters of {str(user)}', description=f'page {len(embeds) + 1}'))
+    await monsters_message.add_reaction("⏮")
+    await monsters_message.add_reaction("❌")
+    await monsters_message.add_reaction("⏭")
 
-        if len(field) < 1:
-            field = '[empty]'
+    def check(reaction, user):
+        return (
+            user == ctx.author
+            and str(reaction.emoji) in {"⏮", "⏭", "❌"}
+            and reaction.message.id == monsters_message.id
+        )
 
-        embeds[-1].add_field(name=f'Section {i}', value=field, inline=False)
+    while True:
+        try:
+            reaction, user = await ctx.bot.wait_for("reaction_add", timeout=150.0, check=check)
+        except asyncio.TimeoutError:
+            await monsters_message.clear_reactions()
+            break
+        if str(reaction.emoji) == "❌":
+            await monsters_message.delete()
+            break
+        elif str(reaction.emoji) == "⏮":
+            if current_page != 0:
+                current_page -= 1
+        elif str(reaction.emoji) == "⏭":
+            if current_page != len(embeds) - 1:
+                current_page += 1
 
-    for embed in embeds:
-        embed.set_author(name=str(user), icon_url=user.avatar_url)
-        embed.set_footer(text=f'Monsters of {user}')
-
-    for e in embeds:
-        await ctx.message.channel.send(embed=e)
+        await monsters_message.remove_reaction(reaction.emoji, user)
+        await monsters_message.edit(embed=monsters_message[current_page])
 
 
 async def all_traits(ctx, options):
@@ -645,6 +654,19 @@ async def group_embed(ctx, group_db, group_monsters_db):
 
     for e in embeds:
         await ctx.message.channel.send(embed=e)
+
+
+def _create_monsters_embed_list(title, user, monsters):
+    pages = []
+    pages_count = len(monsters) // 20
+    for i in range(0, len(monsters), 20):
+        page = discord.Embed(title=f'{title} Page #{i}/{pages_count}]')
+        page.set_author(name=user, icon_url=user.avatar_url)
+        page.set_footer(text=f'Monsters of {user}')
+        for monster in monsters[i:i+20]:
+            page.add_field(name=monster['name'], value=monster['description'], inline=False)
+        pages.append(page)
+    return pages
 
 
 def group_full_title(group_db, group_monsters_db):
