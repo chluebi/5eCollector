@@ -1,5 +1,3 @@
-import time
-import datetime
 
 def seconds_to_text(seconds):
     time_values = {'year': 3600 * 24 * 365,

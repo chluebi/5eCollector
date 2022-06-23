@@ -1,12 +1,10 @@
-import discord
 from discord.ext import commands
-import asyncio
-import time
 
 import lib.checks
 import lib.database as db
 import lib.embeds
 import lib.util
+
 
 class StatsCog(commands.Cog):
     

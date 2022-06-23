@@ -1,8 +1,5 @@
-import psycopg2
-
 import lib.database as db
 import lib.util
-
 
 config = lib.util.config
 

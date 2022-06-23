@@ -1,12 +1,11 @@
-import discord
-from discord.ext import commands, tasks
-import time
 import asyncio
+import time
+
+from discord.ext import commands, tasks
 
 import lib.checks
 import lib.database as db
 import lib.embeds
-
 
 config = lib.util.config
 
