@@ -1,16 +1,17 @@
+import asyncio
+import random
+import time
 from re import S
+
 import discord
 from discord.ext import commands
-import asyncio
-import time
-import random
 
 import lib.checks
 import lib.database as db
 import lib.embeds
-import lib.util
-import lib.traits
 import lib.getters
+import lib.traits
+import lib.util
 
 config = lib.util.config
 
