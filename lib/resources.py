@@ -1,12 +1,9 @@
-import os
 import json
+import os
 import random
-import math
-import time
-import discord
 
-import lib.util
 import lib.time_handle
+import lib.util
 
 config = lib.util.config
 

@@ -1,19 +1,15 @@
+import logging
+import traceback
+
 import discord
 from discord.ext import commands
-import time
-import traceback
-import sys
-import asyncio
-import random
-import logging
 
-import lib.util
-import lib.database as db
-import lib.time_handle
-import lib.resources
 import lib.checks
-import lib.getters
 import lib.embeds
+import lib.getters
+import lib.resources
+import lib.time_handle
+import lib.util
 
 config = lib.util.config
 
