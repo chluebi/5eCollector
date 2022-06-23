@@ -1,13 +1,13 @@
+import asyncio
+
 import discord
 from discord.ext import commands
-import asyncio
-import time
 
 import lib.checks
 import lib.database as db
 import lib.embeds
-import lib.util
 import lib.traits
+import lib.util
 
 
 class UserCog(commands.Cog):

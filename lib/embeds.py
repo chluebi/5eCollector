@@ -1,15 +1,15 @@
 
 import asyncio
-import discord
 import time
 
+import discord
 from psycopg2.extensions import TRANSACTION_STATUS_INERROR
 
-import lib.database as db
 import lib.checks
+import lib.database as db
+import lib.getters
 import lib.resources
 import lib.traits
-import lib.getters
 
 config = lib.util.config
 

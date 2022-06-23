@@ -2,6 +2,7 @@ import time
 
 import lib.database as db
 
+
 async def guild_exists(id):
     row = db.Guild.get(id)
     if row is None:
