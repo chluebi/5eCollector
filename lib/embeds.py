@@ -306,7 +306,6 @@ async def user_monsters(ctx, user, options):
             if current_page != len(embeds) - 1:
                 current_page += 1
 
-        await monsters_message.remove_reaction(reaction.emoji, user)
         await monsters_message.edit(embed=embeds[current_page])
 
 
@@ -665,14 +664,14 @@ def _create_monsters_embed_list(title, user, monsters):
     pages_count = (len(monsters) // page_size) + 1
     if len(monsters) < 1:
         no_monsters_embed = discord.Embed(title=title, description=f'No monsters found for {user}')
-        no_monsters_embed.set_author(name=user, icon_url=user.avatar)
+        no_monsters_embed.set_author(name=user, icon_url=user.avatar_url)
         return [no_monsters_embed]
     for i in range(0, len(monsters), page_size):
         current_page = int((i / page_size) + 1)
         page = discord.Embed(title=f'{title} [Page {current_page}/{pages_count}]')
         monsters_string = ''.join(list(monsters[i:i+page_size]))
         page.add_field(name='Monsters', value=monsters_string, inline=False)
-        page.set_author(name=user, icon_url=user.avatar)
+        page.set_author(name=user, icon_url=user.avatar_url)
         page.set_footer(text=f'Monsters of {user}')
         pages.append(page)
     return pages
