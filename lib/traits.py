@@ -59,7 +59,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'At the start of an underdark\'s turn, if the next ally attacker has less hp then the underdark, the underdark consumes them, adding all of the ally\'s hp and stats (but not ac) to themselves.'
+                        'text': 'At the start of an underdark\'s turn, if the next ally attacker has less hp then the underdark, the underdark consumes them, adding 50% of the ally\'s hp and stats (but not ac) to themselves.'
                     }
                 ],
                 'note': ''
@@ -68,19 +68,19 @@ traits = {
                 'name': 'beast',
                 'emoji': '🐻',
                 'amount': 105,
-                'description': 'Beasts gain increased stats at the start of the fight.',
+                'description': 'Beasts call other beasts to their help at the end of their turn.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'All Beasts get +3 in all stats'
+                        'text': 'Each type of beast has a 30% chance to summon a beast of same type and level.'
                     },
                     {
                         'amount': 6,
-                        'text': 'All Beasts get +5 in all stats'
+                        'text': 'Each type of beast has a 50% chance to summon a beast of same type and level.'
                     },
                     {
                         'amount': 9,
-                        'text': 'All Beasts get +8 in all stats'
+                        'text': 'Each type of beast has a 80% chance to summon a beast of same type and level.'
                     }
                 ],
                 'note': ''
@@ -102,19 +102,19 @@ traits = {
                 'name': 'monstrosity',
                 'emoji': '🦖',
                 'amount': 83,
-                'description': 'Monstrosities deal increased damage.',
+                'description': 'Monstrosities feed on their enemies to become stronger.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Monstrosities deal +20% more damage',
+                        'text': 'On enemy death, all monstrosities gain +3 in all stats.',
                     },
                     {
                         'amount': 6,
-                        'text': 'Monstrosities deal +40% more damage',
+                        'text': 'On enemy death, all monstrosities gain +6 in all stats.',
                     },
                     {
                         'amount': 9,
-                        'text': 'Monstrosities deal +80% more damage',
+                        'text': 'On enemy death, all monstrosities gain +9 in all stats.',
                     }
                 ],
                 'note': ''
@@ -123,27 +123,11 @@ traits = {
                 'name': 'poison',
                 'emoji': '💚',
                 'amount': 77,
-                'description': 'All poisonous creatures deal additional damage on a critical hit.',
+                'description': 'All poisonous creatures poison enemy creatures on a successful hit.',
                 'effects': [
                     {
-                        'amount': 2,
-                        'text': '4 bonus damage on a critical hit.'
-                    },
-                    {
-                        'amount': 4,
-                        'text': '12 bonus damage on a critical hit.'
-                    },
-                    {
-                        'amount': 6,
-                        'text': '20 bonus damage on a critical hit.'
-                    },
-                    {
-                        'amount': 8,
-                        'text': '30 bonus damage on a critical hit.'
-                    },
-                    {
-                        'amount': 10,
-                        'text': '50 bonus damage on a critical hit.'
+                        'amount': 1,
+                        'text': 'Poison the enemy creature, making them take damage equal to 10% of their maximum health at the start of their turn.'
                     }
                 ],
                 'note': ''
@@ -156,7 +140,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Heal for 5% of their maximum health'
+                        'text': 'Heal for 40% of their maximum health'
                     }
                 ],
                 'note': ''
@@ -182,7 +166,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Non-mountain allies take 30% less damage.'
+                        'text': 'Non-mountain allies take 50% less damage.'
                     }
                 ],
                 'note': ''
@@ -195,15 +179,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': '+5 in all stats for the strongest dragon, -2 for the other dragons.'
+                        'text': '+10 in all stats for the strongest dragon, -3 for the other dragons.'
                     },
                     {
                         'amount': 6,
-                        'text': '+10 in all stats for the strongest dragon, -5 for the other dragons.'
+                        'text': '+20 in all stats for the strongest dragon, -5 for the other dragons.'
                     },
                     {
                         'amount': 9,
-                        'text': '+20 in all stats for the strongest dragon, -10 for the other dragons.'
+                        'text': '+30 in all stats for the strongest dragon, -10 for the other dragons.'
                     }
                 ],
                 'note': 'For dragons with equal CR, a random strongest dragon is chosen.'
@@ -216,7 +200,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'If an urban creature fails an attack, they gain +1 in all stats.'
+                        'text': 'If an urban creature fails an attack, they gain +2 in all stats.'
                     }
                 ],
                 'note': ''
@@ -246,27 +230,27 @@ traits = {
                 'name': 'fire',
                 'emoji': '🔥',
                 'amount': 53,
-                'description': 'On a successful attack, fire creatures deal additional bonus damage to the target and adjacent creatures.',
+                'description': 'On a successful attack, fire creatures burn the target and adjacent creatures, making them take damage at the start of their turn.',
                 'effects': [
                     {
                         'amount': 2,
-                        'text': '2 bonus damage to the target and adjacent creatures.'
+                        'text': '10 damage at the start of their turn.'
                     },
                     {
                         'amount': 4,
-                        'text': '4 bonus damage to the target and adjacent creatures.'
+                        'text': '20 damage at the start of their turn.'
                     },
                     {
                         'amount': 6,
-                        'text': '8 bonus damage to the target and adjacent creatures.'
+                        'text': '35 damage at the start of their turn.'
                     },
                     {
                         'amount': 8,
-                        'text': '14 bonus damage to the target and adjacent creatures.'
+                        'text': '60 damage at the start of their turn.'
                     },
                     {
                         'amount': 10,
-                        'text': '20 bonus damage to the target and adjacent creatures.'
+                        'text': '100 damage at the start of their turn.'
                     }
                 ],
                 'note': ''
@@ -279,7 +263,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Desert creatures take 20% less damage.'
+                        'text': 'Desert creatures take 40% less damage.'
                     }
                 ],
                 'note': ''
@@ -338,19 +322,11 @@ traits = {
                 'name': 'acid',
                 'emoji': '❇️',
                 'amount': 39,
-                'description': 'Acidic creature damage enemies who attack them.',
+                'description': 'Acidic creature give acidic burns to creatures that attack them, making them take damage at the start of their turn.',
                 'effects': [
                     {
-                        'amount': 3,
-                        'text': 'Deal 5 bonus damage to the attacker.'
-                    },
-                    {
-                        'amount': 6,
-                        'text': 'Deal 10 bonus damage to the attacker.'
-                    },
-                    {
-                        'amount': 9,
-                        'text': 'Deal 20 bonus damage to the attacker.'
+                        'amount': 1,
+                        'text': 'Every turn after attacking, attackers will take 5% of their maximum health as damage.'
                     }
                 ],
                 'note': ''
@@ -363,15 +339,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Heal for 10% of dealt damage when attacking.'
-                    },
-                    {
-                        'amount': 6,
                         'text': 'Heal for 30% of dealt damage when attacking.'
                     },
                     {
+                        'amount': 6,
+                        'text': 'Heal for 60% of dealt damage when attacking.'
+                    },
+                    {
                         'amount': 9,
-                        'text': 'Heal for 50% of dealt damage when attacking.'
+                        'text': 'Heal for 120% of dealt damage when attacking.'
                     }
                 ],
                 'note': 'Bonus damage does not count'
@@ -397,15 +373,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'At the end of the round, summon a random elemental (Cr < 2).'
+                        'text': 'At the end of the round, summon a random elemental (Cr < 5).'
                     },
                     {
                         'amount': 6,
-                        'text': 'At the end of the round, summon a random elemental (Cr < 4).'
+                        'text': 'At the end of the round, summon a random elemental (Cr < 10).'
                     },
                     {
                         'amount': 9,
-                        'text': 'At the end of the round, summon a random elemental (Cr < 10).'
+                        'text': 'At the end of the round, summon a random elemental (Cr Unbounded).'
                     }
                 ],
                 'note': ''
@@ -435,7 +411,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Also damage 3 additional random enemies.'
+                        'text': 'Also damage 2 additional random enemies.'
                     }
                 ],
                 'note': ''
@@ -444,19 +420,19 @@ traits = {
                 'name': 'construct',
                 'emoji': '⚙️',
                 'amount': 28,
-                'description': 'At the beginning of the fight, constructs gain additional AC.',
+                'description': 'At the beginning of the fight, constructs gain additional AC and damage resistance.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Constructs gain +2 AC.'
+                        'text': 'Constructs gain +2 AC and take 30% less damage.'
                     },
                     {
                         'amount': 6,
-                        'text': 'Constructs gain +4 AC.'
+                        'text': 'Constructs gain +4 AC and take 50% less damage.'
                     },
                     {
                         'amount': 9,
-                        'text': 'Constructs gain +7 AC.'
+                        'text': 'Constructs gain +7 AC and take 70% less damage.'
                     }
                 ],
                 'note': ''
@@ -469,7 +445,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Take 30% less damage from enemies with higher CR.'
+                        'text': 'Take 50% less damage from enemies with higher CR.'
                     }
                 ],
                 'note': ''
@@ -478,14 +454,14 @@ traits = {
                 'name': 'devil',
                 'emoji': '👿',
                 'amount': 27,
-                'description': 'When a devil rolls a 6, all devils gain increased stats.',
+                'description': 'Devils bind the creature in front of them to themselves, giving it increased stats and resummoning it once after dying.',
                 'effects': [
                     {
-                        'amount': 5,
-                        'text': 'When a devil rolls a 6, all devils gain +6 in all stats. (excluding AC)'
+                        'amount': 1,
+                        'text': 'Bind the creature in front of you giving it +5 in all stats and resummoning it once after death.'
                     }
                 ],
-                'note': ''
+                'note': 'The creature will not be resummoned if the devil it is bound to is dead.'
             },
     'giant': {
                 'name': 'giant',
@@ -525,19 +501,19 @@ traits = {
                 'name': 'cold',
                 'emoji': '❄️',
                 'amount': 25,
-                'description': 'On a crit, cold creatures reduce the stats of the target and adjacent enemies. (excluding AC)',
+                'description': 'On a successful hit, cold creatures reduce the stats of the target and adjacent enemies. (excluding AC)',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'On a crit, reduce the stats of the target and adjacent enemies by 3. (excluding AC)'
+                        'text': 'On a successful hit, reduce the stats of the target and adjacent enemies by 2. (excluding AC)'
                     },
                     {
                         'amount': 6,
-                        'text': 'On a crit, reduce the stats of the target and adjacent enemies by 5. (excluding AC)'
+                        'text': 'On a successful hit, reduce the stats of the target and adjacent enemies by 4. (excluding AC)'
                     },
                     {
                         'amount': 9,
-                        'text': 'On a crit, reduce the stats of the target and adjacent enemies by 7. (excluding AC)'
+                        'text': 'On a successful hit, reduce the stats of the target and adjacent enemies by 7. (excluding AC)'
                     }
                 ],
                 'note': ''
@@ -576,11 +552,11 @@ traits = {
                 'name': 'arctic',
                 'emoji': '🧊',
                 'amount': 19,
-                'description': 'At the start of the fight, all non-arctic creatures gain reduced stats.',
+                'description': 'At the start of every round, all non-arctic creatures gain reduced stats.',
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'At the start of the fight, all non-arctic creatures gain -5 to all stats. (excluding AC)'
+                        'text': 'At the start of every round, all non-arctic creatures gain -5 to all stats. (excluding AC)'
                     }
                 ],
                 'note': ''
@@ -589,19 +565,19 @@ traits = {
                 'name': 'plant',
                 'emoji': '🌱',
                 'amount': 19,
-                'description': 'Heal the most damaged ally for a part of their maximum health at the end of the turn.',
+                'description': 'Heal the most damaged ally to full health and give them additional maximum health at the end of the turn.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Heal the most damaged ally for 10% of their maximum health at the end of the turn.'
+                        'text': 'Heal the most damaged ally to maximum health and give them +20% maximum health.'
                     },
                     {
                         'amount': 6,
-                        'text': 'Heal the most damaged ally for 20% of their maximum health at the end of the turn.'
+                        'text': 'Heal the most damaged ally to maximum health and give them +40% maximum health.'
                     },
                     {
                         'amount': 9,
-                        'text': 'Heal the most damaged ally for 30% of their maximum health at the end of the turn.'
+                        'text': 'Heal the most damaged ally to maximum health and give them +70% maximum health.'
                     }
                 ],
                 'note': ''
@@ -639,7 +615,7 @@ traits = {
                 'effects': [
                     {
                         'amount': 5,
-                        'text': 'Gain +5% HP for each AC.'
+                        'text': 'Gain +10% HP for each AC.'
                     }
                 ],
                 'note': ''
@@ -651,7 +627,7 @@ traits = {
                 'description': 'Force creatures may ignore armor.',
                 'effects': [
                     {
-                        'amount': 10,
+                        'amount': 5,
                         'text': 'Force creatures ignore armor.'
                     }
                 ],
@@ -673,7 +649,7 @@ traits = {
                     },
                     {
                         'amount': 9,
-                        'text': 'Thunder attacks also damage all enemies behind the enemy.'
+                        'text': 'Thunder attacks also damage 5 enemies behind the enemy.'
                     }
                 ],
                 'note': ''
@@ -708,15 +684,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Gain +1 on their attack roll for each 5% of health missing'
+                        'text': 'Gain +5 on their attack roll for each 5% of health missing'
                     },
                     {
                         'amount': 6,
-                        'text': 'Gain +2 on their attack roll for each 5% of health missing'
+                        'text': 'Gain +8 on their attack roll for each 5% of health missing'
                     },
                     {
                         'amount': 9,
-                        'text': 'Gain +4 on their attack roll for each 5% of health missing'
+                        'text': 'Gain +15 on their attack roll for each 5% of health missing'
                     }
                 ],
                 'note': ''
@@ -729,15 +705,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Gain +5 on their attack roll if their CR is lower than the enemies.'
-                    },
-                    {
-                        'amount': 6,
                         'text': 'Gain +10 on their attack roll if their CR is lower than the enemies.'
                     },
                     {
+                        'amount': 6,
+                        'text': 'Gain +20 on their attack roll if their CR is lower than the enemies.'
+                    },
+                    {
                         'amount': 9,
-                        'text': 'Gain +15 on their attack roll if their CR is lower than the enemies.'
+                        'text': 'Gain +30 on their attack roll if their CR is lower than the enemies.'
                     }
                 ],
                 'note': ''
@@ -749,7 +725,7 @@ traits = {
                 'description': 'Ooze may consum weakened attackers, absorbing them for their stats (excluding AC).',
                 'effects': [
                     {
-                        'amount': 3,
+                        'amount': 1,
                         'text': 'Being attacked by an enemy with 20% or less HP leads to the ooze consuming them for their max HP and makes them absorb all of the enemy\'s stats.'
                     }
                 ],
@@ -759,15 +735,15 @@ traits = {
                 'name': 'celestial',
                 'emoji': '👼',
                 'amount': 8,
-                'description': 'If an enemy fails to attack on a celestial, all allies are healed for a part of their max HP.',
+                'description': 'Celestials shield all allies, directing reduced damage to themselves instead.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'If an enemy fails to attack on a celestial, all allies are healed for 10% of their max HP.'
+                        'text': 'If a celestial is still alive and an ally takes damage, the highest HP celestial will instead take 50% of the damage and the attacked creature none.'
                     },
                     {
                         'amount': 6,
-                        'text': 'If an enemy fails to attack on a celestial, all allies are healed for 20% of their max HP.'
+                        'text': 'If a celestial is still alive and an ally takes damage, the highest HP celestial will instead take 30% of the damage and the attacked creature none.'
                     }
                 ],
                 'note': ''
@@ -780,15 +756,15 @@ traits = {
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'When below 20% of health, take 50% less damage.'
-                    },
-                    {
-                        'amount': 6,
                         'text': 'When below 20% of health, take 70% less damage.'
                     },
                     {
+                        'amount': 6,
+                        'text': 'When below 20% of health, take 80% less damage.'
+                    },
+                    {
                         'amount': 8,
-                        'text': 'When below 20% of health, take 90% less damage.'
+                        'text': 'When below 20% of health, take 95% less damage.'
                     }
                 ],
                 'note': ''
