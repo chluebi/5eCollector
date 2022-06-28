@@ -199,8 +199,16 @@ traits = {
                 'description': 'Urban creatures adapt quickly, gaining additional stats if they fail an attack.',
                 'effects': [
                     {
-                        'amount': 5,
+                        'amount': 3,
                         'text': 'If an urban creature fails an attack, they gain +2 in all stats.'
+                    },
+                    {
+                        'amount': 6,
+                        'text': 'If an urban creature fails an attack, they gain +3 in all stats.'
+                    },
+                    {
+                        'amount': 9,
+                        'text': 'If an urban creature fails an attack, they gain +4 in all stats.'
                     }
                 ],
                 'note': ''
@@ -242,15 +250,15 @@ traits = {
                     },
                     {
                         'amount': 6,
-                        'text': '35 damage at the start of their turn.'
+                        'text': '30 damage at the start of their turn.'
                     },
                     {
                         'amount': 8,
-                        'text': '60 damage at the start of their turn.'
+                        'text': '40 damage at the start of their turn.'
                     },
                     {
                         'amount': 10,
-                        'text': '100 damage at the start of their turn.'
+                        'text': '55 damage at the start of their turn.'
                     }
                 ],
                 'note': ''
@@ -565,15 +573,15 @@ traits = {
                 'name': 'plant',
                 'emoji': '🌱',
                 'amount': 19,
-                'description': 'Heal the most damaged ally to full health and give them additional maximum health at the end of the turn.',
+                'description': 'Heal the most damaged ally to full health and give them additional maximum health at the end of the round.',
                 'effects': [
                     {
                         'amount': 3,
-                        'text': 'Heal the most damaged ally to maximum health and give them +20% maximum health.'
+                        'text': 'Heal the most damaged ally to maximum health and give them +20% maximum health at the end of the round.'
                     },
                     {
                         'amount': 6,
-                        'text': 'Heal the most damaged ally to maximum health and give them +40% maximum health.'
+                        'text': 'Heal the most damaged ally to maximum health and give them +40% maximum health at the end of the round.'
                     },
                     {
                         'amount': 9,
