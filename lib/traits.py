@@ -60,6 +60,10 @@ traits = {
                     {
                         'amount': 5,
                         'text': 'At the start of an underdark\'s turn, if the next ally attacker has less hp then the underdark, the underdark consumes them, adding 50% of the ally\'s hp and stats (but not ac) to themselves.'
+                    },
+                    {
+                        'amount': 10,
+                        'text': 'At the start of an underdark\'s turn, if the next ally attacker has less hp then the underdark, the underdark consumes them, adding 100% of the ally\'s hp and stats (but not ac) to themselves.'
                     }
                 ],
                 'note': ''
