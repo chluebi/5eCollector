@@ -659,22 +659,27 @@ async def group_embed(ctx, group_db, group_monsters_db):
 
 
 def _create_monsters_embed_list(title, user, monsters):
-    pages = []
-    page_size = 20  # the max number of monsters per page
-    pages_count = (len(monsters) // page_size) + 1
+    
     if len(monsters) < 1:
         no_monsters_embed = discord.Embed(title=title, description=f'No monsters found for {user}')
         no_monsters_embed.set_author(name=user, icon_url=user.avatar_url)
         return [no_monsters_embed]
-    for i in range(0, len(monsters), page_size):
-        current_page = int((i / page_size) + 1)
-        page = discord.Embed(title=f'{title} [Page {current_page}/{pages_count}]')
-        monsters_string = ''.join(list(monsters[i:i+page_size]))
+
+    pages = ['']
+    for monster in monsters:
+        if len(pages[-1]) + len(monster) > 1000:
+            pages += [monster]
+        else:
+            pages[-1] += monster
+
+    embeds = []
+    for i, monsters_string in enumerate(pages, 1):
+        page = discord.Embed(title=f'{title} [Page {i}/{len(pages)}]')
         page.add_field(name='Monsters', value=monsters_string, inline=False)
         page.set_author(name=user, icon_url=user.avatar_url)
         page.set_footer(text=f'Monsters of {user}')
-        pages.append(page)
-    return pages
+        embeds.append(page)
+    return embeds
 
 
 def group_full_title(group_db, group_monsters_db):
