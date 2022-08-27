@@ -1257,7 +1257,7 @@ class CombatCog(commands.Cog):
             description += f' with ``#{attacker_group_db.id} {attacker_group_db.name}``'
 
             embed = discord.Embed(title=title, description=description)
-            embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+            embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar.url)
 
             message = await ctx.message.channel.send(embed=embed)
             await message.add_reaction('✔️')
@@ -1309,6 +1309,6 @@ class CombatCog(commands.Cog):
             for m in formatted_message:
                 messages.append(await ctx.message.channel.send(m))
 
-def setup(bot):
-    bot.add_cog(ChosenCog(bot))
-    bot.add_cog(CombatCog(bot))
+async def setup(bot):
+    await bot.add_cog(ChosenCog(bot))
+    await bot.add_cog(CombatCog(bot))

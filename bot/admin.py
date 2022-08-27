@@ -75,6 +75,6 @@ class CheatCog(commands.Cog):
         await ctx.message.channel.send(f'{user.mention} score has been set from ``{user_db.score}`` to ``{user_db.score + amount}``')
 
 
-def setup(bot):
-    bot.add_cog(AdminCog(bot))
-    bot.add_cog(CheatCog(bot))
+async def setup(bot):
+    await bot.add_cog(AdminCog(bot))
+    await bot.add_cog(CheatCog(bot))

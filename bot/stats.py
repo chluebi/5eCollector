@@ -137,5 +137,5 @@ class StatsCog(commands.Cog):
         for m in message:
             await ctx.message.channel.send(m)
 
-def setup(bot):
-    bot.add_cog(StatsCog(bot))
+async def setup(bot):
+    await bot.add_cog(StatsCog(bot))

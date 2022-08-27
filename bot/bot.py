@@ -1,5 +1,6 @@
 import logging
 import traceback
+import asyncio
 
 import discord
 from discord.ext import commands
@@ -65,7 +66,7 @@ initial_extensions = [
 
 
 for extension in initial_extensions:
-    bot.load_extension(extension)
+    asyncio.run(bot.load_extension(extension))
 
 
 bot.run(config['discord']['token'])
