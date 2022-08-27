@@ -24,7 +24,7 @@ class RollCog(commands.Cog):
         monster = lib.resources.random_monster()
         embed = lib.embeds.generate_monster_embed(monster)
 
-        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar.url)
         embed.set_footer(text=f'🛡️ only catchable by {ctx.message.author} 🛡️')
 
         message = await ctx.send(embed=embed)
@@ -147,13 +147,13 @@ class CatchCog(commands.Cog):
 
             embed = lib.embeds.generate_monster_embed(monster)
 
-            embed.set_author(name=str(user), icon_url=user.avatar_url)
+            embed.set_author(name=str(user), icon_url=user.avatar.url)
             embed.set_footer(text=f'🎯 caught by {user} 🎯')
             await ctx.message.edit(embed=embed)
             await ctx.message.remove_reaction('🗨️', ctx.me)
 
 
 
-def setup(bot):
-    bot.add_cog(RollCog(bot))
-    bot.add_cog(CatchCog(bot))
+async def setup(bot):
+    await bot.add_cog(RollCog(bot))
+    await bot.add_cog(CatchCog(bot))

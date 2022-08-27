@@ -50,7 +50,7 @@ Catches Remaining: {catch_text}
 Attacks Remaining: {attack_text}
     '''
     embed = discord.Embed(title=f'{user} ({ctx.guild})', description=desc)
-    embed.set_thumbnail(url=user.avatar_url)
+    embed.set_thumbnail(url=user.avatar.url)
 
     chosen_db = db.Chosen.get_by_owner(ctx.guild.id, user_db.id)
     if chosen_db is not None:
@@ -651,7 +651,7 @@ async def group_embed(ctx, group_db, group_monsters_db):
     for embed in embeds:
         if len(group_monsters_db) > 0:
             embed.set_thumbnail(url=first_monster['image'])
-        embed.set_author(name=str(user), icon_url=user.avatar_url)
+        embed.set_author(name=str(user), icon_url=user.avatar.url)
         embed.set_footer(text=f'Group {group_db.name} by {user}')
 
     for e in embeds:
@@ -662,7 +662,7 @@ def _create_monsters_embed_list(title, user, monsters):
     
     if len(monsters) < 1:
         no_monsters_embed = discord.Embed(title=title, description=f'No monsters found for {user}')
-        no_monsters_embed.set_author(name=user, icon_url=user.avatar_url)
+        no_monsters_embed.set_author(name=user, icon_url=user.avatar.url)
         return [no_monsters_embed]
 
     pages = ['']
@@ -676,7 +676,7 @@ def _create_monsters_embed_list(title, user, monsters):
     for i, monsters_string in enumerate(pages, 1):
         page = discord.Embed(title=f'{title} [Page {i}/{len(pages)}]')
         page.add_field(name='Monsters', value=monsters_string, inline=False)
-        page.set_author(name=user, icon_url=user.avatar_url)
+        page.set_author(name=user, icon_url=user.avatar.url)
         page.set_footer(text=f'Monsters of {user}')
         embeds.append(page)
     return embeds
@@ -753,6 +753,6 @@ def generate_caught_monster_embed(name, monster, owner, level, exhausted_timesta
         embed.add_field(name=stat.upper(), value=value, inline=True)
     embed.set_thumbnail(url=monster['image'])
 
-    embed.set_author(name=str(owner), icon_url=owner.avatar_url)
+    embed.set_author(name=str(owner), icon_url=owner.avatar.url)
 
     return embed

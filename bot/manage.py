@@ -217,7 +217,7 @@ class MonsterCog(commands.Cog):
         description += f' to {receiver.mention}'
 
         embed = discord.Embed(title=title, description=description)
-        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar.url)
 
         message = await ctx.message.channel.send(embed=embed)
         await message.add_reaction('✔️')
@@ -274,7 +274,7 @@ class MonsterCog(commands.Cog):
         description += f'\n React to this message to capture it for yourself.'
 
         embed = discord.Embed(title=title, description=description)
-        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar.url)
 
         message = await ctx.message.channel.send(embed=embed)
         await message.add_reaction('✔️')
@@ -349,7 +349,7 @@ class MonsterCog(commands.Cog):
         description += f' in exchange for {lib.embeds.monster_full_title(taken.id, taken.name, taken.type, taken.level, taken.exhausted_timestamp)} by {owner.mention}'
 
         embed = discord.Embed(title=title, description=description)
-        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar_url)
+        embed.set_author(name=str(ctx.message.author), icon_url=ctx.message.author.avatar.url)
 
         message = await ctx.message.channel.send(embed=embed)
         await message.add_reaction('✔️')
@@ -653,8 +653,8 @@ class GroupCog(commands.Cog):
 
 
 
-def setup(bot):
-    bot.add_cog(UserCog(bot))
-    bot.add_cog(MonsterCog(bot))
-    bot.add_cog(TraitCog(bot))
-    bot.add_cog(GroupCog(bot))
+async def setup(bot):
+    await bot.add_cog(UserCog(bot))
+    await bot.add_cog(MonsterCog(bot))
+    await bot.add_cog(TraitCog(bot))
+    await bot.add_cog(GroupCog(bot))
